@@ -1,0 +1,213 @@
+.fixed-topbar {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  width: 100%;
+  z-index: 1100;
+  background: #fff;
+  box-shadow: 0 2px 8px rgba(44,62,80,0.07);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0 32px;
+  height: 64px;
+}
+.topbar {
+  background: #fff;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  width: 100%;
+  min-height: 64px;
+  box-shadow: none;
+}
+.search-container {
+  flex: 1;
+  max-width: 400px;
+}
+.search-input {
+  width: 100%;
+  padding: 10px 16px;
+  border-radius: 8px;
+  border: 1px solid #e0e4ea;
+  background: #fff;
+  font-size: 1rem;
+  color: #222;
+  outline: none;
+  transition: border 0.2s;
+}
+.search-input:focus {
+  border: 1.5px solid #8e44ad;
+}
+.topbar-actions {
+  display: flex;
+  align-items: center;
+  gap: 18px;
+  margin-left: 18px;
+}
+.icon-button {
+  position: relative;
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  background: none;
+  border: none;
+  color: #2c3e50;
+  font-size: 1.2rem;
+}
+.icon-button:hover {
+  background-color: rgba(0, 0, 0, 0.05);
+  transform: scale(1.1);
+}
+.icon-button i {
+  transition: transform 0.3s ease;
+}
+.icon-button:hover i {
+  transform: rotate(15deg);
+}
+.notification-badge {
+  position: absolute;
+  top: 0;
+  right: 0;
+  background-color: #e74c3c;
+  color: white;
+  font-size: 0.8rem;
+  padding: 3px 8px;
+  border-radius: 12px;
+  min-width: 20px;
+  text-align: center;
+  transform: translate(25%, -25%);
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+  font-weight: bold;
+}
+.profile-container {
+  position: relative;
+}
+.profile-btn {
+  background: none;
+  border: none;
+  cursor: pointer;
+  padding: 0;
+  position: relative;
+  transition: transform 0.2s ease;
+}
+.profile-image, .profile-initial {
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  border: 2px solid #3498db;
+  transition: all 0.2s ease;
+  box-shadow: 0 2px 8px rgba(52, 152, 219, 0.2);
+}
+.profile-btn:hover {
+  transform: scale(1.05);
+}
+.profile-btn:hover .profile-image,
+.profile-btn:hover .profile-initial {
+  transform: scale(1.1);
+  box-shadow: 0 4px 12px rgba(52, 152, 219, 0.3);
+}
+.profile-dropdown {
+  position: absolute;
+  top: calc(100% + 10px);
+  right: 0;
+  width: 280px;
+  background: #ffffff;
+  border-radius: 8px;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.15);
+  padding: 0.75rem;
+  z-index: 1000;
+  animation: slideDown 0.2s ease;
+  border: 1px solid #e0e0e0;
+}
+.profile-dropdown .profile-info {
+  text-align: center;
+  padding: 0.75rem;
+  background: #f8f9fa;
+  border-radius: 6px;
+  margin-bottom: 0.5rem;
+}
+.profile-dropdown .profile-image-large {
+  width: 60px;
+  height: 60px;
+  margin: 0 auto 0.5rem;
+  border: 2px solid #3498db;
+  box-shadow: 0 2px 8px rgba(52, 152, 219, 0.2);
+}
+.profile-dropdown h3 {
+  margin: 0;
+  color: #2c3e50;
+  font-size: 1.1rem;
+}
+.profile-dropdown p {
+  margin: 0.25rem 0 0;
+  color: #7f8c8d;
+  font-size: 0.9rem;
+}
+.dropdown-link {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  padding: 0.6rem 0.75rem;
+  color: #2c3e50;
+  text-decoration: none;
+  border: none;
+  background: none;
+  width: 100%;
+  text-align: left;
+  cursor: pointer;
+  border-radius: 6px;
+  transition: all 0.2s ease;
+  margin: 0.15rem 0;
+  font-size: 0.95rem;
+}
+.dropdown-link:hover {
+  background: #f0f7ff;
+  color: #3498db;
+  transform: translateX(5px);
+}
+.dropdown-link i {
+  width: 20px;
+  color: #3498db;
+  font-size: 1rem;
+  transition: transform 0.2s ease;
+}
+.dropdown-divider {
+  height: 1px;
+  background: #e0e0e0;
+  margin: 0.4rem 0;
+}
+.logout-btn {
+  color: #e74c3c !important;
+  background: #fff5f5 !important;
+  margin-top: 0.4rem !important;
+}
+.logout-btn i {
+  color: #e74c3c !important;
+}
+.logout-btn:hover {
+  background: #ffe5e5 !important;
+  color: #c0392b !important;
+}
+@keyframes slideDown {
+  from { opacity: 0; transform: translateY(-10px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+@media (max-width: 900px) {
+  .fixed-topbar {
+    padding: 0 8px;
+    height: 56px;
+  }
+  .topbar {
+    min-height: 56px;
+  }
+  .search-container {
+    max-width: 180px;
+  }
+} 
