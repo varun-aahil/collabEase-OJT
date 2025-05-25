@@ -1,0 +1,458 @@
+/* KanbanBoard.css */
+
+.kanban-board-container {
+  width: 100%;
+  overflow-x: auto;
+  padding: 1rem 0;
+}
+
+.kanban-board {
+  display: flex;
+  gap: 1.5rem;
+  min-height: 600px;
+  padding-bottom: 1rem;
+}
+
+.kanban-column {
+  min-width: 300px;
+  width: 300px;
+  background-color: #f8f9fa;
+  border-radius: 10px;
+  display: flex;
+  flex-direction: column;
+  max-height: 100%;
+}
+
+.kanban-column-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 1rem;
+  border-bottom: 1px solid #e9ecef;
+}
+
+.kanban-column-header h3 {
+  font-size: 1rem;
+  font-weight: 600;
+  color: #495057;
+  margin: 0;
+  flex-grow: 1;
+}
+
+.task-count {
+  background-color: #e9ecef;
+  color: #6c757d;
+  font-size: 0.75rem;
+  padding: 0.2rem 0.5rem;
+  border-radius: 10px;
+  margin-right: 0.5rem;
+}
+
+.add-task-button {
+  background: none;
+  border: none;
+  color: #6c757d;
+  cursor: pointer;
+  padding: 0.25rem;
+  border-radius: 4px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.2s;
+}
+
+.add-task-button:hover {
+  background-color: #e9ecef;
+  color: #4e73df;
+}
+
+.tasks-container {
+  padding: 1rem;
+  overflow-y: auto;
+  flex-grow: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+}
+
+.task-card {
+  background-color: white;
+  border-radius: 8px;
+  padding: 1rem;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
+  cursor: grab;
+  user-select: none;
+  position: relative;
+  border-left: 3px solid transparent;
+  transition: all 0.2s;
+}
+
+.task-card:hover {
+  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+  transform: translateY(-2px);
+}
+
+.task-card.dragging {
+  opacity: 0.5;
+  box-shadow: 0 8px 16px rgba(0, 0, 0, 0.1);
+}
+
+.task-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 0.75rem;
+}
+
+.task-priority {
+  font-size: 0.75rem;
+  display: flex;
+  align-items: center;
+}
+
+.priority-high {
+  color: #e74a3b;
+}
+
+.priority-medium {
+  color: #f6c23e;
+}
+
+.priority-low {
+  color: #4e73df;
+}
+
+.task-menu-container {
+  position: relative;
+}
+
+.task-menu-button {
+  background: none;
+  border: none;
+  color: #adb5bd;
+  cursor: pointer;
+  padding: 0.25rem;
+  border-radius: 4px;
+}
+
+.task-menu-button:hover {
+  background-color: #f8f9fa;
+  color: #495057;
+}
+
+.task-menu {
+  position: absolute;
+  top: 100%;
+  right: 0;
+  background-color: white;
+  border-radius: 4px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
+  z-index: 10;
+  min-width: 120px;
+  overflow: hidden;
+}
+
+.task-menu button {
+  width: 100%;
+  text-align: left;
+  padding: 0.75rem 1rem;
+  background: none;
+  border: none;
+  cursor: pointer;
+  transition: background-color 0.2s;
+}
+
+.task-menu button:hover {
+  background-color: #f8f9fa;
+}
+
+.task-menu button.delete-btn {
+  color: #e74a3b;
+}
+
+.task-menu button.delete-btn:hover {
+  background-color: #fdeeee;
+}
+
+.task-title {
+  font-size: 1rem;
+  font-weight: 600;
+  margin: 0 0 0.75rem 0;
+  color: #343a40;
+  line-height: 1.4;
+}
+
+.task-description {
+  font-size: 0.875rem;
+  color: #6c757d;
+  margin: 0 0 1rem 0;
+  line-height: 1.5;
+}
+
+.task-footer {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-top: 0.75rem;
+  font-size: 0.75rem;
+}
+
+.task-due-date {
+  display: flex;
+  align-items: center;
+  gap: 0.25rem;
+  color: #6c757d;
+}
+
+.date-overdue {
+  color: #e74a3b;
+}
+
+.date-today {
+  color: #f6c23e;
+}
+
+.date-soon {
+  color: #4e73df;
+}
+
+.task-assignee img {
+  width: 24px;
+  height: 24px;
+  border-radius: 50%;
+  object-fit: cover;
+}
+
+.task-unassigned {
+  color: #adb5bd;
+}
+
+.task-attachments, .task-subtasks {
+  display: flex;
+  align-items: center;
+  gap: 0.25rem;
+  color: #6c757d;
+}
+
+.add-task-form {
+  background-color: white;
+  border-radius: 8px;
+  padding: 1rem;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+}
+
+.add-task-form input[type="text"],
+.add-task-form textarea {
+  padding: 0.75rem;
+  border: 1px solid #ced4da;
+  border-radius: 4px;
+  font-size: 0.875rem;
+  width: 100%;
+}
+
+.add-task-form textarea {
+  resize: vertical;
+  min-height: 80px;
+}
+
+.form-row {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.form-row label {
+  width: 90px;
+  font-size: 0.875rem;
+  color: #495057;
+}
+
+.form-row select, .form-row input[type="date"] {
+  flex-grow: 1;
+  padding: 0.5rem;
+  border: 1px solid #ced4da;
+  border-radius: 4px;
+  font-size: 0.875rem;
+}
+
+.form-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 0.5rem;
+  margin-top: 0.5rem;
+}
+
+.add-btn {
+  background-color: #4e73df;
+  color: white;
+  border: none;
+  padding: 0.5rem 1rem;
+  border-radius: 4px;
+  font-size: 0.875rem;
+  cursor: pointer;
+  transition: background-color 0.2s;
+}
+
+.add-btn:hover {
+  background-color: #3a56b5;
+}
+
+.cancel-btn {
+  background-color: #f8f9fa;
+  color: #6c757d;
+  border: 1px solid #ced4da;
+  padding: 0.5rem 1rem;
+  border-radius: 4px;
+  font-size: 0.875rem;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.cancel-btn:hover {
+  background-color: #e9ecef;
+}
+
+.task-edit-form {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+}
+
+.task-edit-title {
+  font-size: 1rem;
+  font-weight: 600;
+  padding: 0.5rem;
+  border: 1px solid #ced4da;
+  border-radius: 4px;
+}
+
+.task-edit-description {
+  font-size: 0.875rem;
+  padding: 0.5rem;
+  border: 1px solid #ced4da;
+  border-radius: 4px;
+  resize: vertical;
+  min-height: 80px;
+}
+
+.task-edit-row {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.task-edit-row label {
+  width: 90px;
+  font-size: 0.875rem;
+  color: #495057;
+}
+
+.task-edit-row select, .task-edit-row input[type="date"] {
+  flex-grow: 1;
+  padding: 0.5rem;
+  border: 1px solid #ced4da;
+  border-radius: 4px;
+  font-size: 0.875rem;
+}
+
+.task-edit-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 0.5rem;
+  margin-top: 0.5rem;
+}
+
+.save-task-btn {
+  background-color: #4e73df;
+  color: white;
+  border: none;
+  padding: 0.5rem 1rem;
+  border-radius: 4px;
+  font-size: 0.875rem;
+  cursor: pointer;
+  transition: background-color 0.2s;
+}
+
+.save-task-btn:hover {
+  background-color: #3a56b5;
+}
+
+.cancel-edit-btn {
+  background-color: #f8f9fa;
+  color: #6c757d;
+  border: 1px solid #ced4da;
+  padding: 0.5rem 1rem;
+  border-radius: 4px;
+  font-size: 0.875rem;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.cancel-edit-btn:hover {
+  background-color: #e9ecef;
+}
+
+.add-column {
+  min-width: 300px;
+  width: 300px;
+  background-color: #f1f3f5;
+  border-radius: 10px;
+  border: 2px dashed #ced4da;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.add-column:hover {
+  background-color: #e9ecef;
+  border-color: #adb5bd;
+}
+
+.add-column-button {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.5rem;
+  color: #6c757d;
+  padding: 2rem 0;
+}
+
+.add-column-button svg {
+  font-size: 1.5rem;
+}
+
+.add-column-form {
+  padding: 1rem;
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+}
+
+.add-column-form input {
+  padding: 0.75rem;
+  border: 1px solid #ced4da;
+  border-radius: 4px;
+  font-size: 0.875rem;
+}
+
+.add-column-actions {
+  display: flex;
+  justify-content: space-between;
+}
+
+@media (max-width: 768px) {
+  .kanban-column {
+    min-width: 280px;
+    width: 280px;
+  }
+  
+  .task-footer {
+    flex-wrap: wrap;
+    gap: 0.5rem;
+  }
+} 

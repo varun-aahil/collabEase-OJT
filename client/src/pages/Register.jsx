@@ -1,6 +1,7 @@
 import { Link, useNavigate } from "react-router-dom";
 import { useState } from "react";
-import axios from "axios";
+import { createUserWithEmailAndPassword, signInWithPopup, GoogleAuthProvider, updateProfile } from "firebase/auth";
+import { auth } from "../firebase";
 import "../styles/Register.css";
 
 function Register({ setUser }) {
@@ -25,27 +26,49 @@ function Register({ setUser }) {
 		setError("");
 		setLoading(true);
 		try {
-			const response = await axios.post("http://localhost:5000/auth/register", formData, {
-				withCredentials: true,
-				headers: {
-					'Content-Type': 'application/json'
-				}
-			});
+			const userCredential = await createUserWithEmailAndPassword(auth, formData.email, formData.password);
+			const user = userCredential.user;
 			
-			if (response.data && response.data.user) {
-				setUser(response.data.user);
-				navigate("/dashboard", { replace: true });
-			}
+			// Update the user's display name
+			await updateProfile(user, {
+				displayName: formData.username
+			});
+
+			setUser({
+				id: user.uid,
+				email: user.email,
+				displayName: formData.username,
+				photoURL: user.photoURL
+			});
+			navigate("/dashboard", { replace: true });
 		} catch (error) {
-			console.error("Signup error:", error.response?.data || error.message);
-			setError(error.response?.data?.message || "Registration failed. Please try again.");
+			console.error("Signup error:", error);
+			setError(error.message || "Registration failed. Please try again.");
 		} finally {
 			setLoading(false);
 		}
 	};
 
-	const googleAuth = () => {
-		window.location.href = "http://localhost:5000/auth/google";
+	const handleGoogleSignIn = async () => {
+		setError("");
+		setLoading(true);
+		try {
+			const provider = new GoogleAuthProvider();
+			const userCredential = await signInWithPopup(auth, provider);
+			const user = userCredential.user;
+			setUser({
+				id: user.uid,
+				email: user.email,
+				displayName: user.displayName,
+				photoURL: user.photoURL
+			});
+			navigate("/dashboard", { replace: true });
+		} catch (error) {
+			console.error("Google sign-in error:", error);
+			setError(error.message || "Google sign-in failed. Please try again.");
+		} finally {
+			setLoading(false);
+		}
 	};
 
 	return (
@@ -89,7 +112,7 @@ function Register({ setUser }) {
 						{loading ? "Signing up..." : "Sign Up"}
 					</button>
 					<p className="text">or</p>
-					<button className="google_btn" onClick={googleAuth} disabled={loading}>
+					<button className="google_btn" onClick={handleGoogleSignIn} disabled={loading}>
 						<img src="./images/google.png" alt="google icon" />
 						<span>Sign up with Google</span>
 					</button>

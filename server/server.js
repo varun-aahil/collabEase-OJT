@@ -76,8 +76,41 @@ app.get("/", (req, res) => {
 	res.send("Server is running");
 });
 
-const port = process.env.PORT || 5000;
-app.listen(port, () => {
-	console.log(`Server is running on port ${port}`);
-	console.log("MongoDB connected");
-});
+// Function to find a free port
+const findFreePort = async (startPort) => {
+	const net = require('net');
+	
+	return new Promise((resolve, reject) => {
+		const server = net.createServer();
+		server.unref();
+		server.on('error', (err) => {
+			if (err.code === 'EADDRINUSE') {
+				resolve(findFreePort(startPort + 1));
+			} else {
+				reject(err);
+			}
+		});
+		
+		server.listen(startPort, () => {
+			server.close(() => {
+				resolve(startPort);
+			});
+		});
+	});
+};
+
+const startServer = async () => {
+	try {
+		const port = process.env.PORT || 5000;
+		const freePort = await findFreePort(port);
+		app.listen(freePort, () => {
+			console.log(`Server is running on port ${freePort}`);
+			console.log("MongoDB connected");
+		});
+	} catch (error) {
+		console.error('Failed to start server:', error);
+		process.exit(1);
+	}
+};
+
+startServer();

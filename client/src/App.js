@@ -1,6 +1,7 @@
 import { Routes, Route, Navigate } from "react-router-dom";
 import { useEffect, useState } from "react";
-import axios from "axios";
+import { onAuthStateChanged } from "firebase/auth";
+import { auth } from "./firebase";
 
 // Import pages
 import Login from "./pages/Login";
@@ -9,6 +10,7 @@ import Dashboard from "./pages/Dashboard";
 import Team from "./pages/Team";
 import Projects from "./pages/Projects";
 import Landing from './pages/Landing';
+import Profile from './pages/Profile';
 
 function App() {
 	const [user, setUser] = useState(null);
@@ -16,30 +18,26 @@ function App() {
 	const [error, setError] = useState(null);
 
 	useEffect(() => {
-		const checkAuth = async () => {
-			try {
-				const response = await axios.get("http://localhost:5000/auth/login/success", {
-					withCredentials: true,
-					headers: {
-						'Accept': 'application/json',
-						'Content-Type': 'application/json'
-					}
+		const unsubscribe = onAuthStateChanged(auth, (user) => {
+			if (user) {
+				setUser({
+					id: user.uid,
+					email: user.email,
+					displayName: user.displayName,
+					photoURL: user.photoURL
 				});
-				if (response.data.user) {
-					setUser(response.data.user);
-				}
-			} catch (error) {
-				// Only set error if it's not a 401 (unauthorized)
-				if (error.response?.status !== 401) {
-					console.error("Auth check error:", error);
-					setError(error.response?.data?.message || "Authentication failed");
-				}
-			} finally {
-				setLoading(false);
+			} else {
+				setUser(null);
 			}
-		};
+			setLoading(false);
+		}, (error) => {
+			console.error("Auth state change error:", error);
+			setError(error.message);
+			setLoading(false);
+		});
 
-		checkAuth();
+		// Cleanup subscription
+		return () => unsubscribe();
 	}, []);
 
 	if (loading) {
@@ -81,6 +79,10 @@ function App() {
 			<Route
 				path="/projects"
 				element={user ? <Projects user={user} setUser={setUser} /> : <Navigate to="/login" replace />}
+			/>
+			<Route
+				path="/profile"
+				element={user ? <Profile user={user} setUser={setUser} /> : <Navigate to="/login" replace />}
 			/>
 			<Route
 				path="/"

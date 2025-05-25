@@ -1,343 +1,327 @@
-import { useState, useEffect } from 'react';
-import { useNavigate, Link } from 'react-router-dom';
-import axios from 'axios';
+import React, { useState, useEffect } from 'react';
+import { Link, useNavigate } from 'react-router-dom';
+import { FaUser, FaEnvelope, FaLock, FaCamera, FaArrowLeft } from 'react-icons/fa';
 import '../styles/Profile.css';
 
-function Profile({ user, setUser }) {
+const Profile = ({ user, setUser }) => {
   const navigate = useNavigate();
-  const [recentActivity, setRecentActivity] = useState([
-    {
-      id: 1,
-      type: 'login',
-      description: 'Logged in from Chrome on Windows',
-      timestamp: '2024-03-20T10:30:00',
-      location: 'New York, USA',
-      device: 'Chrome on Windows'
-    },
-    {
-      id: 2,
-      type: 'password_change',
-      description: 'Password changed successfully',
-      timestamp: '2024-03-19T15:45:00',
-      location: 'New York, USA',
-      device: 'Chrome on Windows'
-    },
-    {
-      id: 3,
-      type: 'login',
-      description: 'Logged in from Safari on iPhone',
-      timestamp: '2024-03-18T09:15:00',
-      location: 'New York, USA',
-      device: 'Safari on iPhone'
-    }
-  ]);
-  const [loginStats, setLoginStats] = useState({
-    totalLogins: 156,
-    lastLogin: '2024-03-20T10:30:00',
-    activeSessions: 2,
-    loginMethods: {
-      email: 120,
-      google: 25,
-      github: 11
-    }
-  });
+  const [activeTab, setActiveTab] = useState('account');
   const [userPhoto, setUserPhoto] = useState(null);
-  const [isDarkTheme, setIsDarkTheme] = useState(false);
-  const [showSecurityModal, setShowSecurityModal] = useState(false);
-  const [securitySettings, setSecuritySettings] = useState({
+  const [editMode, setEditMode] = useState(false);
+  
+  const [formData, setFormData] = useState({
+    displayName: user?.displayName || '',
+    email: user?.email || '',
+    bio: user?.bio || '',
+    location: user?.location || '',
+    phone: user?.phone || '',
     currentPassword: '',
     newPassword: '',
-    confirmPassword: '',
-    twoFactorEnabled: false
+    confirmPassword: ''
   });
+  
+  const [notification, setNotification] = useState({ show: false, message: '', type: '' });
 
   useEffect(() => {
-    // Check if user is authenticated
-    if (!user) {
-      navigate('/login');
-      return;
-    }
-
-    // Load theme preference from localStorage
-    const savedTheme = localStorage.getItem('theme');
-    if (savedTheme) {
-      setIsDarkTheme(savedTheme === 'dark');
-      document.body.classList.toggle('dark-theme', savedTheme === 'dark');
-    }
-
-    // Fetch user profile photo
-    const fetchUserPhoto = async () => {
-      try {
-        const response = await fetch('/api/users/profile', {
-          credentials: 'include'
-        });
-        if (response.ok) {
-          const data = await response.json();
-          setUserPhoto(data.photo || null);
-        }
-      } catch (error) {
-        console.error('Error fetching user photo:', error);
-      }
-    };
-
-    fetchUserPhoto();
-  }, [user, navigate]);
-
-  const handleThemeToggle = () => {
-    setIsDarkTheme(!isDarkTheme);
-    document.body.classList.toggle('dark-theme');
-    localStorage.setItem('theme', isDarkTheme ? 'light' : 'dark');
-  };
-
-  const handleSecurityUpdate = async (e) => {
-    e.preventDefault();
-    if (securitySettings.newPassword !== securitySettings.confirmPassword) {
-      alert("New passwords don't match");
-      return;
-    }
-    try {
-      const response = await axios.post('/api/users/security/update', securitySettings, {
-        withCredentials: true
-      });
-      setShowSecurityModal(false);
-      setSecuritySettings({
-        currentPassword: '',
-        newPassword: '',
-        confirmPassword: '',
-        twoFactorEnabled: securitySettings.twoFactorEnabled
-      });
-      // Add new activity
-      setRecentActivity(prev => [{
-        id: Date.now(),
-        type: 'password_change',
-        description: 'Password changed successfully',
-        timestamp: new Date().toISOString(),
-        location: 'Current Location',
-        device: navigator.userAgent
-      }, ...prev]);
-    } catch (error) {
-      alert(error.response?.data?.message || 'Failed to update security settings');
-    }
-  };
-
-  const handleLogoutAllDevices = async () => {
-    try {
-      await axios.post('/api/auth/logout-all', {}, {
-        withCredentials: true
-      });
-      setLoginStats(prev => ({
-        ...prev,
-        activeSessions: 1
+    // Set user photo
+    setUserPhoto(user?.photoURL || `https://ui-avatars.com/api/?name=${encodeURIComponent(user?.displayName || user?.email || "User")}&background=5a5ee3&color=fff`);
+    
+    // Update form data when user changes
+    if (user) {
+      setFormData(prevData => ({
+        ...prevData,
+        displayName: user.displayName || '',
+        email: user.email || '',
+        bio: user.bio || '',
+        location: user.location || '',
+        phone: user.phone || ''
       }));
-      // Add new activity
-      setRecentActivity(prev => [{
-        id: Date.now(),
-        type: 'logout_all',
-        description: 'Logged out from all other devices',
-        timestamp: new Date().toISOString(),
-        location: 'Current Location',
-        device: navigator.userAgent
-      }, ...prev]);
-    } catch (error) {
-      alert('Failed to logout from all devices');
+    }
+  }, [user]);
+
+  const handleInputChange = (e) => {
+    const { name, value } = e.target;
+    setFormData(prevData => ({
+      ...prevData,
+      [name]: value
+    }));
+  };
+
+  const handleSubmit = (e) => {
+    e.preventDefault();
+    
+    // Update profile info
+    setUser(prevUser => ({
+      ...prevUser,
+      displayName: formData.displayName,
+      bio: formData.bio,
+      location: formData.location,
+      phone: formData.phone
+    }));
+    
+    // Show success notification
+    showNotification('Profile updated successfully!', 'success');
+    setEditMode(false);
+  };
+
+  const handlePasswordChange = (e) => {
+    e.preventDefault();
+    
+    // Validate passwords
+    if (formData.newPassword !== formData.confirmPassword) {
+      showNotification('New passwords do not match', 'error');
+      return;
+    }
+    
+    if (formData.newPassword.length < 6) {
+      showNotification('Password must be at least 6 characters', 'error');
+      return;
+    }
+    
+    // Success message (in a real app, this would update the password in Firebase)
+    showNotification('Password updated successfully!', 'success');
+    
+    // Reset password fields
+    setFormData(prevData => ({
+      ...prevData,
+      currentPassword: '',
+      newPassword: '',
+      confirmPassword: ''
+    }));
+  };
+
+  const showNotification = (message, type) => {
+    setNotification({ show: true, message, type });
+    
+    // Hide notification after 3 seconds
+    setTimeout(() => {
+      setNotification({ show: false, message: '', type: '' });
+    }, 3000);
+  };
+
+  const handlePhotoChange = (e) => {
+    const file = e.target.files[0];
+    if (file) {
+      const reader = new FileReader();
+      reader.onloadend = () => {
+        setUserPhoto(reader.result);
+        // In a real app, you would upload this to storage and update the user profile
+        setUser(prevUser => ({
+          ...prevUser,
+          photoURL: reader.result
+        }));
+      };
+      reader.readAsDataURL(file);
     }
   };
+
+  if (!user) {
+    navigate('/login');
+    return null;
+  }
 
   return (
     <div className="profile-page">
+      {/* Header */}
       <div className="profile-header">
-        <div className="profile-info">
-          {userPhoto ? (
-            <img src={userPhoto} alt="Profile" className="profile-image-large" />
-          ) : (
-            <div className="profile-initial-large">
-              {user?.name?.charAt(0) || user?.email?.charAt(0)}
-            </div>
-          )}
-          <div className="profile-details">
-            <h1>{user?.name || 'User'}</h1>
-            <p>{user?.email}</p>
-          </div>
-        </div>
-        <div className="header-actions">
-          <button 
-            className="icon-button theme-toggle" 
-            onClick={handleThemeToggle}
-            title={isDarkTheme ? "Switch to Light Mode" : "Switch to Dark Mode"}
-          >
-            <i className={`fas fa-${isDarkTheme ? 'sun' : 'moon'}`}></i>
-          </button>
-          <Link to="/dashboard" className="back-btn">
-            <i className="fas fa-arrow-left"></i>
-            Back to Dashboard
-          </Link>
-        </div>
+        <Link to="/dashboard" className="back-link">
+          <FaArrowLeft /> Back to Dashboard
+        </Link>
+        <h1>Your Profile</h1>
       </div>
-
-      <div className="profile-content">
-        <div className="section">
-          <div className="section-header">
-            <h2>Recent Activity</h2>
-            <button className="security-btn" onClick={() => setShowSecurityModal(true)}>
-              <i className="fas fa-shield-alt"></i>
-              Security Settings
-            </button>
-          </div>
-          <div className="activity-list">
-            {recentActivity.map((activity) => (
-              <div key={activity.id} className="activity-item">
-                <div className="activity-icon">
-                  <i className={`fas fa-${activity.type === 'login' ? 'sign-in-alt' : 
-                    activity.type === 'password_change' ? 'key' : 
-                    activity.type === 'logout_all' ? 'sign-out-alt' : 'circle'}`}></i>
-                </div>
-                <div className="activity-content">
-                  <p>{activity.description}</p>
-                  <div className="activity-details">
-                    <span><i className="fas fa-clock"></i> {new Date(activity.timestamp).toLocaleString()}</span>
-                    <span><i className="fas fa-map-marker-alt"></i> {activity.location}</span>
-                    <span><i className="fas fa-desktop"></i> {activity.device}</span>
-                  </div>
-                </div>
-              </div>
-            ))}
-          </div>
-        </div>
-
-        <div className="section">
-          <div className="section-header">
-            <h2>Login Statistics</h2>
-          </div>
-          <div className="stats-grid">
-            <div className="stat-card">
-              <i className="fas fa-sign-in-alt"></i>
-              <div className="stat-info">
-                <h3>Total Logins</h3>
-                <p>{loginStats.totalLogins}</p>
-              </div>
-            </div>
-            <div className="stat-card">
-              <i className="fas fa-clock"></i>
-              <div className="stat-info">
-                <h3>Last Login</h3>
-                <p>{new Date(loginStats.lastLogin).toLocaleString()}</p>
-              </div>
-            </div>
-            <div className="stat-card">
-              <i className="fas fa-users"></i>
-              <div className="stat-info">
-                <h3>Active Sessions</h3>
-                <p>{loginStats.activeSessions}</p>
-              </div>
-            </div>
-          </div>
-          <div className="login-methods">
-            <h3>Login Methods</h3>
-            <div className="method-bars">
-              <div className="method-bar">
-                <span>Email</span>
-                <div className="bar-container">
-                  <div className="bar" style={{ width: `${(loginStats.loginMethods.email / loginStats.totalLogins) * 100}%` }}></div>
-                </div>
-                <span>{loginStats.loginMethods.email}</span>
-              </div>
-              <div className="method-bar">
-                <span>Google</span>
-                <div className="bar-container">
-                  <div className="bar" style={{ width: `${(loginStats.loginMethods.google / loginStats.totalLogins) * 100}%` }}></div>
-                </div>
-                <span>{loginStats.loginMethods.google}</span>
-              </div>
-              <div className="method-bar">
-                <span>GitHub</span>
-                <div className="bar-container">
-                  <div className="bar" style={{ width: `${(loginStats.loginMethods.github / loginStats.totalLogins) * 100}%` }}></div>
-                </div>
-                <span>{loginStats.loginMethods.github}</span>
-              </div>
-            </div>
-          </div>
-        </div>
-      </div>
-
-      {showSecurityModal && (
-        <div className="modal">
-          <div className="modal-content">
-            <h2>Security Settings</h2>
-            <form onSubmit={handleSecurityUpdate}>
-              <div className="security-section">
-                <h3>Change Password</h3>
-                <input
-                  type="password"
-                  placeholder="Current Password"
-                  value={securitySettings.currentPassword}
-                  onChange={(e) => setSecuritySettings({
-                    ...securitySettings,
-                    currentPassword: e.target.value
-                  })}
-                  required
-                />
-                <input
-                  type="password"
-                  placeholder="New Password"
-                  value={securitySettings.newPassword}
-                  onChange={(e) => setSecuritySettings({
-                    ...securitySettings,
-                    newPassword: e.target.value
-                  })}
-                  required
-                />
-                <input
-                  type="password"
-                  placeholder="Confirm New Password"
-                  value={securitySettings.confirmPassword}
-                  onChange={(e) => setSecuritySettings({
-                    ...securitySettings,
-                    confirmPassword: e.target.value
-                  })}
-                  required
-                />
-              </div>
-              <div className="security-section">
-                <h3>Two-Factor Authentication</h3>
-                <label className="toggle-switch">
-                  <input
-                    type="checkbox"
-                    checked={securitySettings.twoFactorEnabled}
-                    onChange={(e) => setSecuritySettings({
-                      ...securitySettings,
-                      twoFactorEnabled: e.target.checked
-                    })}
-                  />
-                  <span className="toggle-slider"></span>
-                  Enable 2FA
-                </label>
-              </div>
-              <div className="security-section">
-                <h3>Active Sessions</h3>
-                <p>Current active sessions: {loginStats.activeSessions}</p>
-                <button type="button" className="danger-btn" onClick={handleLogoutAllDevices}>
-                  Logout from all other devices
-                </button>
-              </div>
-              <div className="modal-buttons">
-                <button type="submit" className="submit-btn">
-                  Save Changes
-                </button>
-                <button
-                  type="button"
-                  className="cancel-btn"
-                  onClick={() => setShowSecurityModal(false)}
-                >
-                  Cancel
-                </button>
-              </div>
-            </form>
-          </div>
+      
+      {/* Notification */}
+      {notification.show && (
+        <div className={`notification ${notification.type}`}>
+          {notification.message}
         </div>
       )}
+      
+      <div className="profile-container">
+        {/* Sidebar */}
+        <div className="profile-sidebar">
+          <div className="profile-photo-container">
+            <img src={userPhoto} alt="Profile" className="profile-photo" />
+            <label className="photo-upload-label">
+              <FaCamera />
+              <input 
+                type="file" 
+                accept="image/*" 
+                onChange={handlePhotoChange} 
+                style={{ display: 'none' }} 
+              />
+            </label>
+          </div>
+          
+          <h2>{user.displayName || user.email}</h2>
+          <p className="user-email">{user.email}</p>
+          
+          <div className="profile-tabs">
+            <button 
+              className={activeTab === 'account' ? 'active' : ''} 
+              onClick={() => setActiveTab('account')}
+            >
+              <FaUser /> Account
+            </button>
+            <button 
+              className={activeTab === 'security' ? 'active' : ''} 
+              onClick={() => setActiveTab('security')}
+            >
+              <FaLock /> Security
+            </button>
+          </div>
+        </div>
+        
+        {/* Main Content */}
+        <div className="profile-content">
+          {activeTab === 'account' && (
+            <div className="profile-section">
+              <div className="section-header">
+                <h3>Account Information</h3>
+                {!editMode ? (
+                  <button className="edit-button" onClick={() => setEditMode(true)}>
+                    Edit Profile
+                  </button>
+                ) : (
+                  <button className="cancel-button" onClick={() => setEditMode(false)}>
+                    Cancel
+                  </button>
+                )}
+              </div>
+              
+              {!editMode ? (
+                <div className="info-display">
+                  <div className="info-row">
+                    <span className="info-label">Name</span>
+                    <span className="info-value">{formData.displayName || 'Not set'}</span>
+                  </div>
+                  <div className="info-row">
+                    <span className="info-label">Email</span>
+                    <span className="info-value">{formData.email}</span>
+                  </div>
+                  <div className="info-row">
+                    <span className="info-label">Bio</span>
+                    <span className="info-value">{formData.bio || 'Not set'}</span>
+                  </div>
+                  <div className="info-row">
+                    <span className="info-label">Location</span>
+                    <span className="info-value">{formData.location || 'Not set'}</span>
+                  </div>
+                  <div className="info-row">
+                    <span className="info-label">Phone</span>
+                    <span className="info-value">{formData.phone || 'Not set'}</span>
+                  </div>
+                </div>
+              ) : (
+                <form onSubmit={handleSubmit} className="profile-form">
+                  <div className="form-group">
+                    <label htmlFor="displayName">Name</label>
+                    <input
+                      type="text"
+                      id="displayName"
+                      name="displayName"
+                      value={formData.displayName}
+                      onChange={handleInputChange}
+                    />
+                  </div>
+                  <div className="form-group">
+                    <label htmlFor="email">Email</label>
+                    <input
+                      type="email"
+                      id="email"
+                      name="email"
+                      value={formData.email}
+                      disabled
+                    />
+                    <p className="form-hint">Email cannot be changed</p>
+                  </div>
+                  <div className="form-group">
+                    <label htmlFor="bio">Bio</label>
+                    <textarea
+                      id="bio"
+                      name="bio"
+                      value={formData.bio}
+                      onChange={handleInputChange}
+                      rows="3"
+                    />
+                  </div>
+                  <div className="form-group">
+                    <label htmlFor="location">Location</label>
+                    <input
+                      type="text"
+                      id="location"
+                      name="location"
+                      value={formData.location}
+                      onChange={handleInputChange}
+                    />
+                  </div>
+                  <div className="form-group">
+                    <label htmlFor="phone">Phone</label>
+                    <input
+                      type="tel"
+                      id="phone"
+                      name="phone"
+                      value={formData.phone}
+                      onChange={handleInputChange}
+                    />
+                  </div>
+                  <button type="submit" className="save-button">Save Changes</button>
+                </form>
+              )}
+            </div>
+          )}
+          
+          {activeTab === 'security' && (
+            <div className="profile-section">
+              <div className="section-header">
+                <h3>Security Settings</h3>
+              </div>
+              
+              <form onSubmit={handlePasswordChange} className="profile-form">
+                <div className="form-group">
+                  <label htmlFor="currentPassword">Current Password</label>
+                  <input
+                    type="password"
+                    id="currentPassword"
+                    name="currentPassword"
+                    value={formData.currentPassword}
+                    onChange={handleInputChange}
+                  />
+                </div>
+                <div className="form-group">
+                  <label htmlFor="newPassword">New Password</label>
+                  <input
+                    type="password"
+                    id="newPassword"
+                    name="newPassword"
+                    value={formData.newPassword}
+                    onChange={handleInputChange}
+                  />
+                </div>
+                <div className="form-group">
+                  <label htmlFor="confirmPassword">Confirm New Password</label>
+                  <input
+                    type="password"
+                    id="confirmPassword"
+                    name="confirmPassword"
+                    value={formData.confirmPassword}
+                    onChange={handleInputChange}
+                  />
+                </div>
+                <button type="submit" className="save-button">Update Password</button>
+              </form>
+              
+              <div className="danger-zone">
+                <h3>Danger Zone</h3>
+                <p>Once you delete your account, there is no going back. Please be certain.</p>
+                <button className="delete-account-button">Delete Account</button>
+              </div>
+            </div>
+          )}
+        </div>
+      </div>
     </div>
   );
-}
+};
 
 export default Profile; 
