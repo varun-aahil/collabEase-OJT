@@ -5,130 +5,14 @@ import Sidebar from '../components/Sidebar';
 import KanbanBoard from '../components/KanbanBoard';
 import { FaPlus, FaProjectDiagram, FaTasks, FaCheckCircle, FaFilter, FaSearch, FaChartBar, FaArrowLeft, FaStar, FaTag, FaUser } from 'react-icons/fa';
 import '../styles/Projects.css';
+import { getProjects, getProjectTasks, createProject, createTask, updateTaskStatus, deleteTask } from '../utils/api';
 // import { useSelector } from 'react-redux'; // For user info if needed
 
-// Mock users
+// Mock users - this should eventually be replaced with real user data from the API
 const users = [
   { id: 1, name: "Rahul", avatar: "https://ui-avatars.com/api/?name=Rahul" },
   { id: 2, name: "Sanjay", avatar: "https://ui-avatars.com/api/?name=Sanjay" },
   { id: 3, name: "Priya", avatar: "https://ui-avatars.com/api/?name=Priya" },
-];
-
-// Mock projects
-const mockProjects = [
-  { 
-    id: 101, 
-    name: "Website Redesign", 
-    description: "Revamp the company website with modern UI and improved user experience. Focus on mobile responsiveness and performance optimization.",
-    due: "2024-07-01", 
-    status: "Active", 
-    progress: 0,
-    members: [1, 2]
-  },
-  { 
-    id: 102, 
-    name: "Mobile App", 
-    description: "Build the new mobile app for iOS and Android platforms. Implement core functionality and integrate with existing backend systems.",
-    due: "2024-08-15", 
-    status: "Planning",
-    progress: 0,
-    members: [2, 3]
-  },
-  { 
-    id: 103, 
-    name: "Marketing Campaign", 
-    description: "Launch summer marketing campaign across digital channels. Create content, design assets, and track performance metrics.",
-    due: "2024-06-20", 
-    status: "Active",
-    progress: 0,
-    members: [1, 3]
-  },
-  { 
-    id: 104, 
-    name: "Customer Portal", 
-    description: "Develop a self-service customer portal for account management and support. Implement authentication, profile management, and ticketing system.",
-    due: "2024-09-30", 
-    status: "Planning",
-    progress: 0,
-    members: [1, 2, 3]
-  },
-];
-
-// Mock tasks
-const initialTasks = [
-  {
-    id: 1,
-    projectId: 101,
-    title: "Design UI Components",
-    description: "Create a modern component library for the website redesign",
-    status: "To Do",
-    tags: ["frontend", "design"],
-    assignedTo: 1,
-    dueDate: "2024-06-10",
-    priority: "High",
-    subtasks: [
-      { id: 1, title: "Header Component", done: true },
-      { id: 2, title: "Footer Component", done: false },
-      { id: 3, title: "Card Components", done: false },
-    ],
-    attachments: [],
-  },
-  {
-    id: 2,
-    projectId: 101,
-    title: "Setup Backend Architecture",
-    description: "Configure server and database for the new website",
-    status: "In Progress",
-    tags: ["backend", "infrastructure"],
-    assignedTo: 2,
-    dueDate: "2024-06-09",
-    priority: "Medium",
-    subtasks: [
-      { id: 1, title: "Configure Server", done: true },
-      { id: 2, title: "Setup Database", done: true },
-      { id: 3, title: "Configure CI/CD", done: false },
-    ],
-    attachments: [],
-  },
-  {
-    id: 3,
-    projectId: 101,
-    title: "Write Documentation",
-    description: "Create comprehensive developer documentation",
-    status: "Completed",
-    tags: ["docs"],
-    assignedTo: 3,
-    dueDate: "2024-06-08",
-    priority: "Low",
-    subtasks: [],
-    attachments: [],
-  },
-  {
-    id: 4,
-    projectId: 102,
-    title: "Design Mobile UI",
-    description: "Create UI designs for the mobile app",
-    status: "In Progress",
-    tags: ["design", "mobile"],
-    assignedTo: 3,
-    dueDate: "2024-06-15",
-    priority: "High",
-    subtasks: [],
-    attachments: [],
-  },
-  {
-    id: 5,
-    projectId: 102,
-    title: "Implement Authentication",
-    description: "Set up user authentication for the mobile app",
-    status: "To Do",
-    tags: ["backend", "security"],
-    assignedTo: 2,
-    dueDate: "2024-06-20",
-    priority: "High",
-    subtasks: [],
-    attachments: [],
-  },
 ];
 
 const defaultStatuses = ["To Do", "In Progress", "Completed"];
@@ -136,9 +20,9 @@ const defaultStatuses = ["To Do", "In Progress", "Completed"];
 const socket = io("http://localhost:5000", { transports: ['websocket'] }); // Adjust backend URL as needed
 
 function Projects({ user, setUser }) {
-  const [projects, setProjects] = useState(mockProjects);
+  const [projects, setProjects] = useState([]);
   const [selectedProjectId, setSelectedProjectId] = useState(null);
-  const [tasks, setTasks] = useState(initialTasks);
+  const [tasks, setTasks] = useState([]);
   const [statuses, setStatuses] = useState(defaultStatuses);
   const [filterStatus, setFilterStatus] = useState("All");
   const [filterTag, setFilterTag] = useState(null);
@@ -148,6 +32,8 @@ function Projects({ user, setUser }) {
   const [activeTab, setActiveTab] = useState("Tasks");
   const [search, setSearch] = useState("");
   const [showAddProject, setShowAddProject] = useState(false);
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState(null);
   const [newProject, setNewProject] = useState({
     name: '',
     description: '',
@@ -165,115 +51,131 @@ function Projects({ user, setUser }) {
     return () => socket.off("task-update");
   }, []);
   
-  // Calculate initial progress for each project
+  // Fetch projects from the API
   useEffect(() => {
-    const updatedProjects = projects.map(project => {
-      const projectTasks = tasks.filter(t => t.projectId === project.id);
-      const totalTasks = projectTasks.length;
-      const completedTasks = projectTasks.filter(t => t.status === "Completed").length;
-      
-      // Calculate progress - if no tasks, progress is 0
-      const newProgress = totalTasks === 0 ? 0 : Math.round((completedTasks / totalTasks) * 100);
-      
-      return {
-        ...project,
-        progress: newProgress
-      };
-    });
+    const fetchProjects = async () => {
+      try {
+        setLoading(true);
+        setError(null);
+        const response = await getProjects();
+        setProjects(response.data);
+      } catch (error) {
+        console.error("Error fetching projects:", error);
+        setError("Failed to load projects. Please try again later.");
+      } finally {
+        setLoading(false);
+      }
+    };
     
-    setProjects(updatedProjects);
-  }, [tasks]); // Run whenever tasks change, not just on mount
+    fetchProjects();
+  }, []);
+  
+  // Fetch tasks for the selected project
+  useEffect(() => {
+    const fetchTasks = async () => {
+      if (!selectedProjectId) return;
+      
+      try {
+        setLoading(true);
+        setError(null);
+        const response = await getProjectTasks(selectedProjectId);
+        setTasks(response.data);
+      } catch (error) {
+        console.error("Error fetching tasks:", error);
+        setError("Failed to load tasks. Please try again later.");
+      } finally {
+        setLoading(false);
+      }
+    };
+    
+    fetchTasks();
+  }, [selectedProjectId]);
+  
+  // Calculate progress for each project
+  useEffect(() => {
+    if (!selectedProjectId) return;
+    
+    const projectTasks = tasks.filter(t => t.projectId === selectedProjectId || t.project === selectedProjectId);
+    const totalTasks = projectTasks.length;
+    const completedTasks = projectTasks.filter(t => t.status === "Completed").length;
+    
+    // Calculate progress - if no tasks, progress is 0
+    const newProgress = totalTasks === 0 ? 0 : Math.round((completedTasks / totalTasks) * 100);
+    
+    // Update the selected project's progress
+    setProjects(prevProjects => 
+      prevProjects.map(project => 
+        project.id === selectedProjectId ? { ...project, progress: newProgress } : project
+      )
+    );
+  }, [tasks, selectedProjectId]);
 
   // Handle task move in Kanban board
-  const handleTaskMove = (taskId, newStatus) => {
-    // First update the task status
-    setTasks(prevTasks => {
-      const updatedTasks = prevTasks.map(task =>
-        task.id === taskId
-          ? { ...task, status: newStatus }
-          : task
-      );
+  const handleTaskMove = async (taskId, newStatus) => {
+    try {
+      // Update task status in the database
+      await updateTaskStatus(taskId, newStatus);
       
-      // Get the task that was moved
-      const movedTask = updatedTasks.find(t => t.id === taskId);
-      
-      // If we found the task, update the project progress
-      if (movedTask) {
-        const projectId = movedTask.projectId;
-        
-        // Get all tasks for this project after the update
-        const projectTasks = updatedTasks.filter(t => t.projectId === projectId);
-        const totalTasks = projectTasks.length;
-        const completedTasks = projectTasks.filter(t => t.status === "Completed").length;
-        
-        // Calculate new progress percentage
-        const newProgress = totalTasks === 0 ? 0 : Math.round((completedTasks / totalTasks) * 100);
-        
-        // Update the project's progress
-        setProjects(prevProjects =>
-          prevProjects.map(project =>
-            project.id === projectId
-              ? { ...project, progress: newProgress }
-              : project
-          )
+      // Update local state
+      setTasks(prevTasks => {
+        const updatedTasks = prevTasks.map(task =>
+          task.id === taskId
+            ? { ...task, status: newStatus }
+            : task
         );
-      }
+        return updatedTasks;
+      });
       
-      // Save tasks to localStorage
-      localStorage.setItem('tasks', JSON.stringify(updatedTasks));
-      
-      return updatedTasks;
-    });
-    
-    socket.emit("task-update", `Task moved to ${newStatus}`);
+      socket.emit("task-update", `Task moved to ${newStatus}`);
+    } catch (error) {
+      console.error("Error updating task status:", error);
+      setError("Failed to update task status. Please try again.");
+    }
   };
   
-  // Load data from localStorage when component mounts
-  useEffect(() => {
-    const savedTasks = localStorage.getItem('tasks');
-    const savedProjects = localStorage.getItem('projects');
-    const savedStatuses = localStorage.getItem('statuses');
-    
-    if (savedTasks) setTasks(JSON.parse(savedTasks));
-    if (savedProjects) setProjects(JSON.parse(savedProjects));
-    if (savedStatuses) setStatuses(JSON.parse(savedStatuses));
-  }, []);
-
-  // Save projects to localStorage whenever they change
-  useEffect(() => {
-    localStorage.setItem('projects', JSON.stringify(projects));
-  }, [projects]);
-
-  // Save statuses to localStorage whenever they change
-  useEffect(() => {
-    localStorage.setItem('statuses', JSON.stringify(statuses));
-  }, [statuses]);
-  
   // Handle new task creation
-  const handleTaskCreate = (newTask) => {
-    const taskWithProject = {
-      ...newTask,
-      projectId: selectedProjectId,
-      id: tasks.length + 1
-    };
-    setTasks(prevTasks => [...prevTasks, taskWithProject]);
-    socket.emit("task-update", `New task created: ${newTask.title}`);
+  const handleTaskCreate = async (newTask) => {
+    try {
+      const taskWithProject = {
+        ...newTask,
+        project: selectedProjectId
+      };
+      
+      const response = await createTask(taskWithProject);
+      setTasks(prevTasks => [...prevTasks, response.data]);
+      socket.emit("task-update", `New task created: ${newTask.title}`);
+    } catch (error) {
+      console.error("Error creating task:", error);
+      setError("Failed to create task. Please try again.");
+    }
   };
   
   // Handle task update
-  const handleTaskUpdate = (updatedTask) => {
-    setTasks(prevTasks =>
-      prevTasks.map(task =>
-        task.id === updatedTask.id ? updatedTask : task
-      )
-    );
-    socket.emit("task-update", `Task updated: ${updatedTask.title}`);
+  const handleTaskUpdate = async (updatedTask) => {
+    try {
+      const response = await updateTaskStatus(updatedTask.id, updatedTask.status);
+      setTasks(prevTasks =>
+        prevTasks.map(task =>
+          task.id === updatedTask.id ? response.data : task
+        )
+      );
+      socket.emit("task-update", `Task updated: ${updatedTask.title}`);
+    } catch (error) {
+      console.error("Error updating task:", error);
+      setError("Failed to update task. Please try again.");
+    }
   };
   
   // Handle task deletion
-  const handleTaskDelete = (taskId) => {
-    setTasks(prevTasks => prevTasks.filter(task => task.id !== taskId));
-    socket.emit("task-update", `Task deleted`);
+  const handleTaskDelete = async (taskId) => {
+    try {
+      await deleteTask(taskId);
+      setTasks(prevTasks => prevTasks.filter(task => task.id !== taskId));
+      socket.emit("task-update", `Task deleted`);
+    } catch (error) {
+      console.error("Error deleting task:", error);
+      setError("Failed to delete task. Please try again.");
+    }
   };
   
   // Handle adding new status column
@@ -284,30 +186,38 @@ function Projects({ user, setUser }) {
   };
   
   // Handle new project creation
-  const handleCreateProject = () => {
+  const handleCreateProject = async () => {
     if (!newProject.name) return;
     
-    const projectId = projects.length > 0 ? Math.max(...projects.map(p => p.id)) + 1 : 1;
-    const newProjectWithId = {
-      ...newProject,
-      id: projectId,
-      progress: 0
-    };
-    
-    setProjects(prevProjects => [...prevProjects, newProjectWithId]);
-    setNewProject({
-      name: '',
-      description: '',
-      due: '',
-      status: 'Planning',
-      members: []
-    });
-    setShowAddProject(false);
+    try {
+      const projectData = {
+        title: newProject.name,
+        description: newProject.description,
+        due: newProject.due,
+        status: newProject.status,
+        teamMembers: newProject.members
+      };
+      
+      const response = await createProject(projectData);
+      setProjects(prevProjects => [...prevProjects, response.data]);
+      
+      setNewProject({
+        name: '',
+        description: '',
+        due: '',
+        status: 'Planning',
+        members: []
+      });
+      setShowAddProject(false);
+    } catch (error) {
+      console.error("Error creating project:", error);
+      setError("Failed to create project. Please try again.");
+    }
   };
 
   // Filter tasks for selected project
   const projectTasks = selectedProjectId
-    ? tasks.filter(t => t.projectId === selectedProjectId)
+    ? tasks.filter(t => t.projectId === selectedProjectId || t.project === selectedProjectId)
     : [];
 
   // Stats
@@ -374,6 +284,9 @@ function Projects({ user, setUser }) {
     <div className="dashboard">
       <Sidebar />
       <div className="projects-main">
+        {loading && <div className="loading-indicator">Loading...</div>}
+        {error && <div className="error-message">{error}</div>}
+        
         {!selectedProjectId ? (
           <div className="projects-overview">
             <div className="projects-header">
