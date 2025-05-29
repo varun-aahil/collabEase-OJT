@@ -1,22 +1,18 @@
 require("dotenv").config();
 const express = require("express");
 const cors = require("cors");
-const passport = require("passport");
 const session = require("express-session");
-const MongoStore = require("connect-mongo");
-const passportStrategy = require("./passport");
-const connectDB = require("./config/db");
-const authRoute = require("./routes/auth");
+const { initializeFirebase } = require("./config/firebase");
 const projectRoutes = require("./routes/projects");
+const taskRoutes = require("./routes/tasks");
+const userRoutes = require("./routes/users");
 
-// Connect to MongoDB
-connectDB();
+// Initialize Firestore
+const db = initializeFirebase();
 
 // Debug environment variables
 console.log('Environment variables loaded:');
-console.log('CLIENT_ID:', process.env.GOOGLE_CLIENT_ID ? 'Present' : 'Missing');
-console.log('CLIENT_SECRET:', process.env.GOOGLE_CLIENT_SECRET ? 'Present' : 'Missing');
-console.log('MONGO_URI:', process.env.MONGO_URI ? 'Present' : 'Missing');
+console.log('FIREBASE_SERVICE_ACCOUNT:', process.env.FIREBASE_SERVICE_ACCOUNT ? 'Present' : 'Missing');
 
 const app = express();
 
@@ -40,10 +36,6 @@ app.use(
 		secret: process.env.SESSION_SECRET || "cyberwolve",
 		resave: false,
 		saveUninitialized: false,
-		store: MongoStore.create({
-			mongoUrl: process.env.MONGO_URI,
-			ttl: 24 * 60 * 60 // 1 day
-		}),
 		cookie: {
 			maxAge: 24 * 60 * 60 * 1000, // 24 hours
 			sameSite: "lax",
@@ -53,23 +45,34 @@ app.use(
 	})
 );
 
-// Initialize Passport
-passportStrategy(passport);
-
-// Passport middleware
-app.use(passport.initialize());
-app.use(passport.session());
+// Firebase auth middleware
+app.use((req, res, next) => {
+	const authHeader = req.headers.authorization;
+	if (authHeader && authHeader.startsWith('Bearer ')) {
+		const idToken = authHeader.split('Bearer ')[1];
+		// Store the token for use in routes
+		req.token = idToken;
+	}
+	next();
+});
 
 // Debug middleware
 app.use((req, res, next) => {
 	console.log("Session:", req.session);
-	console.log("User:", req.user);
+	console.log("Token:", req.token);
+	next();
+});
+
+// Make Firestore db available to all routes
+app.use((req, res, next) => {
+	req.db = db;
 	next();
 });
 
 // Routes
-app.use("/auth", authRoute);
+app.use("/api/users", userRoutes);
 app.use("/api/projects", projectRoutes);
+app.use("/api/tasks", taskRoutes);
 
 // Test route
 app.get("/", (req, res) => {
@@ -105,7 +108,7 @@ const startServer = async () => {
 		const freePort = await findFreePort(port);
 		app.listen(freePort, () => {
 			console.log(`Server is running on port ${freePort}`);
-			console.log("MongoDB connected");
+			console.log("Firestore initialized");
 		});
 	} catch (error) {
 		console.error('Failed to start server:', error);
