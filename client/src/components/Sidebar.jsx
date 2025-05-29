@@ -16,7 +16,6 @@ function Sidebar() {
     {
       title: "Management",
       items: [
-        { path: '/calendar', icon: 'fas fa-calendar', label: 'Calendar' },
         { path: '/settings', icon: 'fas fa-cog', label: 'Settings' }
       ]
     }
