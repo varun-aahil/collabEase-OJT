@@ -44,6 +44,8 @@ body, .dashboard, .main-content {
   box-shadow: 2px 0 8px rgba(0, 0, 0, 0.1);
   transition: width 0.3s ease;
   z-index: 100;
+  position: sticky;
+  top: 0;
 }
 
 .sidebar-header {
@@ -762,13 +764,33 @@ a.dropdown-link {
   }
 }
 
-/* Add to existing styles */
-
+/* Main content layout */
 .dashboard-main {
   flex: 1;
-  padding: 30px 40px;
-  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+  padding: 30px;
   background: #f8f9fa;
+  overflow-y: auto;
+  height: 100vh;
+}
+
+/* Add spacing between welcome section and topbar */
+.welcome-message {
+  margin-bottom: 20px;
+}
+
+/* Ensure the topbar is properly styled in the dashboard */
+.dashboard-main .topbar,
+.dashboard-main .fixed-topbar {
+  margin-bottom: 20px;
+  background: #fff;
+  border-radius: 12px;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05);
+  position: relative;
+  top: 0;
+  left: 0;
+  right: 0;
 }
 
 /* Activity Item Styling */
