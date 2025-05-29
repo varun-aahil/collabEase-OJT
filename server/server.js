@@ -1,4 +1,5 @@
 require("dotenv").config();
+// Timestamp: 2025-05-30 - Forcing reload
 const express = require("express");
 const cors = require("cors");
 const session = require("express-session");
@@ -45,24 +46,6 @@ app.use(
 	})
 );
 
-// Firebase auth middleware
-app.use((req, res, next) => {
-	const authHeader = req.headers.authorization;
-	if (authHeader && authHeader.startsWith('Bearer ')) {
-		const idToken = authHeader.split('Bearer ')[1];
-		// Store the token for use in routes
-		req.token = idToken;
-	}
-	next();
-});
-
-// Debug middleware
-app.use((req, res, next) => {
-	console.log("Session:", req.session);
-	console.log("Token:", req.token);
-	next();
-});
-
 // Make Firestore db available to all routes
 app.use((req, res, next) => {
 	req.db = db;
@@ -79,35 +62,19 @@ app.get("/", (req, res) => {
 	res.send("Server is running");
 });
 
-// Function to find a free port
-const findFreePort = async (startPort) => {
-	const net = require('net');
-	
-	return new Promise((resolve, reject) => {
-		const server = net.createServer();
-		server.unref();
-		server.on('error', (err) => {
-			if (err.code === 'EADDRINUSE') {
-				resolve(findFreePort(startPort + 1));
-			} else {
-				reject(err);
-			}
-		});
-		
-		server.listen(startPort, () => {
-			server.close(() => {
-				resolve(startPort);
-			});
-		});
-	});
-};
-
 const startServer = async () => {
 	try {
-		const port = process.env.PORT || 5000;
-		const freePort = await findFreePort(port);
-		app.listen(freePort, () => {
-			console.log(`Server is running on port ${freePort}`);
+		const port = parseInt(process.env.PORT || '5001', 10);
+		console.log("Attempting to start server on port:", port);
+		
+		// Ensure port is within valid range
+		if (isNaN(port) || port < 0 || port >= 65536) {
+			console.error('Invalid port number:', port);
+			process.exit(1);
+		}
+		
+		app.listen(port, () => {
+			console.log(`Server is running on port ${port}`);
 			console.log("Firestore initialized");
 		});
 	} catch (error) {

@@ -8,35 +8,53 @@ router.get('/project/:projectId', isAuthenticated, async (req, res) => {
         const db = req.db;
         const projectId = req.params.projectId;
         
+        // Validate project ID
+        if (!projectId) {
+            console.error('Error fetching tasks: Missing project ID');
+            return res.status(400).json({ message: 'Project ID is required' });
+        }
+        
+        console.log(`Fetching tasks for project: ${projectId}`);
+        
         // Get tasks for the project
         const tasksSnapshot = await db.collection('tasks')
             .where('project', '==', projectId)
             .get();
         
         if (tasksSnapshot.empty) {
+            console.log(`No tasks found for project: ${projectId}`);
             return res.json([]);
         }
         
         const tasks = tasksSnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+        console.log(`Found ${tasks.length} tasks for project: ${projectId}`);
         
         // Get user IDs for assigned users and creators
         const userIds = new Set();
         tasks.forEach(task => {
-            if (task.assignedTo) userIds.add(task.assignedTo);
-            if (task.createdBy) userIds.add(task.createdBy);
+            if (task.assignedTo && typeof task.assignedTo === 'string' && task.assignedTo.trim() !== '') {
+                userIds.add(task.assignedTo);
+            }
+            if (task.createdBy && typeof task.createdBy === 'string' && task.createdBy.trim() !== '') {
+                userIds.add(task.createdBy);
+            }
         });
         
         // Fetch all users in one batch
         const usersData = {};
         if (userIds.size > 0) {
-            const userQueries = Array.from(userIds).map(userId => 
-                db.collection('users').doc(userId).get()
-            );
+            const userQueries = Array.from(userIds).map(userId => {
+                if (!userId || typeof userId !== 'string' || userId.trim() === '') {
+                    console.warn('Invalid userId found when fetching user data');
+                    return Promise.resolve(null);
+                }
+                return db.collection('users').doc(userId).get();
+            });
             
             const userDocs = await Promise.all(userQueries);
             
             userDocs.forEach(userDoc => {
-                if (userDoc.exists) {
+                if (userDoc && userDoc.exists) {
                     const userData = userDoc.data();
                     usersData[userDoc.id] = {
                         id: userDoc.id,
@@ -51,8 +69,8 @@ router.get('/project/:projectId', isAuthenticated, async (req, res) => {
         const populatedTasks = tasks.map(task => {
             return {
                 ...task,
-                assignedTo: task.assignedTo ? usersData[task.assignedTo] || task.assignedTo : null,
-                createdBy: task.createdBy ? usersData[task.createdBy] || task.createdBy : null
+                assignedTo: task.assignedTo && usersData[task.assignedTo] ? usersData[task.assignedTo] : task.assignedTo,
+                createdBy: task.createdBy && usersData[task.createdBy] ? usersData[task.createdBy] : task.createdBy
             };
         });
         
@@ -89,21 +107,29 @@ router.get('/my-tasks', isAuthenticated, async (req, res) => {
         const creatorIds = new Set();
         
         tasks.forEach(task => {
-            if (task.project) projectIds.add(task.project);
-            if (task.createdBy) creatorIds.add(task.createdBy);
+            if (task.project && typeof task.project === 'string' && task.project.trim() !== '') {
+                projectIds.add(task.project);
+            }
+            if (task.createdBy && typeof task.createdBy === 'string' && task.createdBy.trim() !== '') {
+                creatorIds.add(task.createdBy);
+            }
         });
         
         // Fetch all projects in one batch
         const projectsData = {};
         if (projectIds.size > 0) {
-            const projectQueries = Array.from(projectIds).map(projectId => 
-                db.collection('projects').doc(projectId).get()
-            );
+            const projectQueries = Array.from(projectIds).map(projectId => {
+                if (!projectId || typeof projectId !== 'string' || projectId.trim() === '') {
+                    console.warn('Invalid projectId found when fetching project data');
+                    return Promise.resolve(null);
+                }
+                return db.collection('projects').doc(projectId).get();
+            });
             
             const projectDocs = await Promise.all(projectQueries);
             
             projectDocs.forEach(projectDoc => {
-                if (projectDoc.exists) {
+                if (projectDoc && projectDoc.exists) {
                     const projectData = projectDoc.data();
                     projectsData[projectDoc.id] = {
                         id: projectDoc.id,
@@ -116,14 +142,18 @@ router.get('/my-tasks', isAuthenticated, async (req, res) => {
         // Fetch all creators in one batch
         const creatorsData = {};
         if (creatorIds.size > 0) {
-            const creatorQueries = Array.from(creatorIds).map(creatorId => 
-                db.collection('users').doc(creatorId).get()
-            );
+            const creatorQueries = Array.from(creatorIds).map(creatorId => {
+                if (!creatorId || typeof creatorId !== 'string' || creatorId.trim() === '') {
+                    console.warn('Invalid creatorId found when fetching creator data');
+                    return Promise.resolve(null);
+                }
+                return db.collection('users').doc(creatorId).get();
+            });
             
             const creatorDocs = await Promise.all(creatorQueries);
             
             creatorDocs.forEach(creatorDoc => {
-                if (creatorDoc.exists) {
+                if (creatorDoc && creatorDoc.exists) {
                     const creatorData = creatorDoc.data();
                     creatorsData[creatorDoc.id] = {
                         id: creatorDoc.id,
@@ -166,6 +196,14 @@ router.get('/stats', isAuthenticated, async (req, res) => {
         const tomorrow = new Date(today);
         tomorrow.setDate(tomorrow.getDate() + 1);
         
+        // Ensure user ID is valid
+        if (!req.user.id || typeof req.user.id !== 'string' || req.user.id.trim() === '') {
+            console.error('Invalid user ID in stats request');
+            return res.status(400).json({ message: 'Invalid user ID' });
+        }
+        
+        console.log(`Fetching task statistics for user: ${req.user.id}`);
+        
         // Get all tasks related to the user
         const assignedTasksSnapshot = await db.collection('tasks')
             .where('assignedTo', '==', req.user.id)
@@ -177,6 +215,8 @@ router.get('/stats', isAuthenticated, async (req, res) => {
             
         const assignedTasks = assignedTasksSnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
         const createdTasks = createdTasksSnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+        
+        console.log(`Found ${assignedTasks.length} assigned tasks and ${createdTasks.length} created tasks`);
         
         // Combine and remove duplicates
         const allTaskIds = new Set();
@@ -224,15 +264,49 @@ router.post('/', isAuthenticated, async (req, res) => {
         const db = req.db;
         const { title, description, project, assignedTo, dueDate, priority } = req.body;
         
+        // Validate title
+        if (!title || typeof title !== 'string' || title.trim() === '') {
+            console.error('Error creating task: Missing title');
+            return res.status(400).json({ message: 'Task title is required' });
+        }
+        
+        // Validate project ID
+        if (!project || typeof project !== 'string' || project.trim() === '') {
+            console.error('Error creating task: Missing or invalid project ID');
+            return res.status(400).json({ message: 'Valid project ID is required' });
+        }
+        
+        console.log(`Creating new task "${title}" for project: ${project}`);
+        
+        // Validate and clean up assignedTo if present
+        let cleanedAssignedTo = null;
+        if (assignedTo && typeof assignedTo === 'string' && assignedTo.trim() !== '') {
+            cleanedAssignedTo = assignedTo.trim();
+            
+            // Verify that user exists
+            const userDoc = await db.collection('users').doc(cleanedAssignedTo).get();
+            if (!userDoc.exists) {
+                console.warn(`Assigned user ${cleanedAssignedTo} does not exist`);
+                // We still allow the task to be created, but log a warning
+            }
+        }
+        
+        // Verify that project exists
+        const projectDoc = await db.collection('projects').doc(project).get();
+        if (!projectDoc.exists) {
+            console.error(`Project ${project} does not exist`);
+            return res.status(400).json({ message: 'Project does not exist' });
+        }
+        
         const newTask = {
-            title,
-            description,
+            title: title.trim(),
+            description: description ? description.trim() : '',
             project,
-            assignedTo,
+            assignedTo: cleanedAssignedTo,
             createdBy: req.user.id,
             dueDate: dueDate ? new Date(dueDate) : null,
             priority: priority || 'medium',
-            status: 'todo',
+            status: 'To Do',
             createdAt: new Date(),
             updatedAt: new Date()
         };
@@ -245,7 +319,7 @@ router.post('/', isAuthenticated, async (req, res) => {
         
         // Get assigned user data
         let assignedToData = null;
-        if (task.assignedTo) {
+        if (task.assignedTo && typeof task.assignedTo === 'string' && task.assignedTo.trim() !== '') {
             const userDoc = await db.collection('users').doc(task.assignedTo).get();
             if (userDoc.exists) {
                 const userData = userDoc.data();
@@ -259,7 +333,7 @@ router.post('/', isAuthenticated, async (req, res) => {
         
         // Get creator data
         let createdByData = null;
-        if (task.createdBy) {
+        if (task.createdBy && typeof task.createdBy === 'string' && task.createdBy.trim() !== '') {
             const creatorDoc = await db.collection('users').doc(task.createdBy).get();
             if (creatorDoc.exists) {
                 const creatorData = creatorDoc.data();
@@ -273,7 +347,7 @@ router.post('/', isAuthenticated, async (req, res) => {
         
         // Get project data
         let projectData = null;
-        if (task.project) {
+        if (task.project && typeof task.project === 'string' && task.project.trim() !== '') {
             const projectDoc = await db.collection('projects').doc(task.project).get();
             if (projectDoc.exists) {
                 const projData = projectDoc.data();
@@ -292,6 +366,7 @@ router.post('/', isAuthenticated, async (req, res) => {
             project: projectData || task.project
         };
         
+        console.log(`Task created successfully with ID: ${taskDoc.id}`);
         res.status(201).json(populatedTask);
     } catch (error) {
         console.error('Error creating task:', error);
@@ -306,10 +381,25 @@ router.patch('/:id/status', isAuthenticated, async (req, res) => {
         const taskId = req.params.id;
         const { status } = req.body;
         
+        // Validate task ID
+        if (!taskId || typeof taskId !== 'string' || taskId.trim() === '') {
+            console.error('Error updating task status: Invalid task ID');
+            return res.status(400).json({ message: 'Invalid task ID' });
+        }
+        
+        // Validate status
+        if (!status || typeof status !== 'string' || status.trim() === '') {
+            console.error('Error updating task status: Invalid status value');
+            return res.status(400).json({ message: 'Invalid status value' });
+        }
+        
+        console.log(`Updating task ${taskId} status to ${status}`);
+        
         // Get the task
         const taskDoc = await db.collection('tasks').doc(taskId).get();
         
         if (!taskDoc.exists) {
+            console.log(`Task ${taskId} not found`);
             return res.status(404).json({ message: 'Task not found' });
         }
         
@@ -319,13 +409,15 @@ router.patch('/:id/status', isAuthenticated, async (req, res) => {
             updatedAt: new Date()
         });
         
+        console.log(`Task ${taskId} status updated successfully`);
+        
         // Get the updated task
         const updatedTaskDoc = await db.collection('tasks').doc(taskId).get();
         const task = { id: updatedTaskDoc.id, ...updatedTaskDoc.data() };
         
         // Get assigned user data
         let assignedToData = null;
-        if (task.assignedTo) {
+        if (task.assignedTo && typeof task.assignedTo === 'string' && task.assignedTo.trim() !== '') {
             const userDoc = await db.collection('users').doc(task.assignedTo).get();
             if (userDoc.exists) {
                 const userData = userDoc.data();
@@ -339,7 +431,7 @@ router.patch('/:id/status', isAuthenticated, async (req, res) => {
         
         // Get creator data
         let createdByData = null;
-        if (task.createdBy) {
+        if (task.createdBy && typeof task.createdBy === 'string' && task.createdBy.trim() !== '') {
             const creatorDoc = await db.collection('users').doc(task.createdBy).get();
             if (creatorDoc.exists) {
                 const creatorData = creatorDoc.data();
@@ -353,7 +445,7 @@ router.patch('/:id/status', isAuthenticated, async (req, res) => {
         
         // Get project data
         let projectData = null;
-        if (task.project) {
+        if (task.project && typeof task.project === 'string' && task.project.trim() !== '') {
             const projectDoc = await db.collection('projects').doc(task.project).get();
             if (projectDoc.exists) {
                 const projData = projectDoc.data();

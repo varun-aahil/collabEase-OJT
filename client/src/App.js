@@ -1,6 +1,6 @@
 import { Routes, Route, Navigate } from "react-router-dom";
 import { useEffect, useState } from "react";
-import { onAuthStateChanged } from "firebase/auth";
+import { onAuthStateChanged, onIdTokenChanged } from "firebase/auth";
 import { auth } from "./firebase";
 
 // Import pages
@@ -17,9 +17,20 @@ function App() {
 	const [loading, setLoading] = useState(true);
 	const [error, setError] = useState(null);
 
+	// Listen for auth state changes and set user
 	useEffect(() => {
-		const unsubscribe = onAuthStateChanged(auth, (user) => {
+		const unsubscribe = onAuthStateChanged(auth, async (user) => {
 			if (user) {
+				// Get the ID token
+				try {
+					const token = await user.getIdToken();
+					// Store the token in localStorage
+					localStorage.setItem('authToken', token);
+					console.log('Auth token saved to localStorage');
+				} catch (error) {
+					console.error('Error getting auth token:', error);
+				}
+				
 				setUser({
 					id: user.uid,
 					email: user.email,
@@ -27,6 +38,8 @@ function App() {
 					photoURL: user.photoURL
 				});
 			} else {
+				// Clear the token when user logs out
+				localStorage.removeItem('authToken');
 				setUser(null);
 			}
 			setLoading(false);
@@ -38,6 +51,41 @@ function App() {
 
 		// Cleanup subscription
 		return () => unsubscribe();
+	}, []);
+
+	// Listen for token changes and update localStorage
+	useEffect(() => {
+		const unsubscribeToken = onIdTokenChanged(auth, async (user) => {
+			if (user) {
+				// Update the token when it changes
+				try {
+					const token = await user.getIdToken();
+					localStorage.setItem('authToken', token);
+					console.log('Auth token refreshed in localStorage');
+				} catch (error) {
+					console.error('Error refreshing auth token:', error);
+				}
+			}
+		});
+
+		// Force token refresh every 45 minutes
+		const intervalId = setInterval(async () => {
+			const user = auth.currentUser;
+			if (user) {
+				try {
+					const token = await user.getIdToken(true);
+					localStorage.setItem('authToken', token);
+					console.log('Auth token force refreshed');
+				} catch (error) {
+					console.error('Error force refreshing token:', error);
+				}
+			}
+		}, 45 * 60 * 1000);
+
+		return () => {
+			unsubscribeToken();
+			clearInterval(intervalId);
+		};
 	}, []);
 
 	if (loading) {

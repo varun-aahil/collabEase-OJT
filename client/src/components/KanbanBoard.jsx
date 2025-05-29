@@ -1,6 +1,160 @@
-import React, { useState, useRef } from 'react';
+import React, { useState, useRef, useEffect, useMemo, useCallback } from 'react';
 import { FaPlus, FaEllipsisH, FaTrash, FaTimes, FaPaperclip, FaCheckCircle, FaClock, FaUser, FaFlag } from 'react-icons/fa';
 import '../styles/KanbanBoard.css';
+
+// TaskCard component for better performance
+const TaskCard = React.memo(({ 
+  task, 
+  status, 
+  draggedTask, 
+  onDragStart, 
+  onTaskUpdate, 
+  onTaskDelete, 
+  onEditTask,
+  users,
+  getPriorityClass,
+  getDueDateClass,
+  formatDate,
+  taskMenuOpen,
+  setTaskMenuOpen,
+  editingTask
+}) => {
+  console.log(`Rendering TaskCard: ${task.id} (status: ${task.status})`);
+  
+  return (
+    <div 
+      key={task.id}
+      className={`task-card ${draggedTask === task.id ? 'dragging' : ''}`}
+      draggable
+      onDragStart={(e) => onDragStart(e, task.id, status)}
+    >
+      {editingTask === task.id ? (
+        <div className="task-edit-form">
+          <input
+            type="text"
+            value={task.title}
+            onChange={(e) => onTaskUpdate({ ...task, title: e.target.value })}
+            className="task-edit-title"
+          />
+          <textarea
+            value={task.description || ''}
+            onChange={(e) => onTaskUpdate({ ...task, description: e.target.value })}
+            className="task-edit-description"
+            placeholder="Add description..."
+          />
+          <div className="task-edit-row">
+            <label>Assigned to:</label>
+            <select 
+              value={task.assignedTo || ''}
+              onChange={(e) => onTaskUpdate({ ...task, assignedTo: e.target.value || null })}
+            >
+              <option value="">Unassigned</option>
+              {users.map(user => (
+                <option key={user.id} value={user.id}>{user.name}</option>
+              ))}
+            </select>
+          </div>
+          <div className="task-edit-row">
+            <label>Priority:</label>
+            <select
+              value={task.priority || 'Medium'}
+              onChange={(e) => onTaskUpdate({ ...task, priority: e.target.value })}
+            >
+              <option>Low</option>
+              <option>Medium</option>
+              <option>High</option>
+            </select>
+          </div>
+          <div className="task-edit-row">
+            <label>Due date:</label>
+            <input
+              type="date"
+              value={task.dueDate || ''}
+              onChange={(e) => onTaskUpdate({ ...task, dueDate: e.target.value })}
+            />
+          </div>
+          <div className="task-edit-actions">
+            <button 
+              className="save-task-btn"
+              onClick={() => onEditTask(null)}
+            >
+              Save
+            </button>
+            <button 
+              className="cancel-edit-btn"
+              onClick={() => onEditTask(null)}
+            >
+              Cancel
+            </button>
+          </div>
+        </div>
+      ) : (
+        <>
+          <div className="task-header">
+            <div className={`task-priority ${getPriorityClass(task.priority)}`}>
+              <FaFlag />
+            </div>
+            <div className="task-menu-container">
+              <button 
+                className="task-menu-button" 
+                onClick={() => setTaskMenuOpen(taskMenuOpen === task.id ? null : task.id)}
+                aria-label="Task menu"
+              >
+                <FaEllipsisH />
+              </button>
+              {taskMenuOpen === task.id && (
+                <div className="task-menu">
+                  <button onClick={() => onEditTask(task.id)}>
+                    Edit
+                  </button>
+                  <button className="delete-btn" onClick={() => onTaskDelete(task.id)}>
+                    Delete
+                  </button>
+                </div>
+              )}
+            </div>
+          </div>
+          <h4 className="task-title">{task.title}</h4>
+          {task.description && (
+            <p className="task-description">{task.description}</p>
+          )}
+          <div className="task-footer">
+            {task.dueDate && (
+              <div className={`task-due-date ${getDueDateClass(task.dueDate)}`}>
+                <FaClock />
+                <span>{formatDate(task.dueDate)}</span>
+              </div>
+            )}
+            {task.assignedTo ? (
+              <div className="task-assignee">
+                <img 
+                  src={users.find(u => u.id === task.assignedTo)?.avatar || `https://ui-avatars.com/api/?name=${encodeURIComponent(users.find(u => u.id === task.assignedTo)?.name || 'User')}`} 
+                  alt={users.find(u => u.id === task.assignedTo)?.name} 
+                />
+              </div>
+            ) : (
+              <div className="task-unassigned">
+                <FaUser />
+              </div>
+            )}
+            {task.attachments?.length > 0 && (
+              <div className="task-attachments">
+                <FaPaperclip />
+                <span>{task.attachments.length}</span>
+              </div>
+            )}
+            {task.subtasks?.length > 0 && (
+              <div className="task-subtasks">
+                <FaCheckCircle />
+                <span>{task.subtasks.filter(s => s.done).length}/{task.subtasks.length}</span>
+              </div>
+            )}
+          </div>
+        </>
+      )}
+    </div>
+  );
+});
 
 const KanbanBoard = ({ 
   tasks, 
@@ -23,64 +177,132 @@ const KanbanBoard = ({
   const dragItem = useRef();
   const dragNode = useRef();
 
+  // Log tasks when they change to help with debugging
+  useEffect(() => {
+    console.log('KanbanBoard received tasks update:', tasks.length, 'tasks');
+    if (tasks.length > 0) {
+      console.log('First few tasks:', tasks.slice(0, 3));
+    }
+  }, [tasks]);
+  
+  // Memoize the filtered tasks for each column to prevent unnecessary re-renders
+  const tasksByColumn = useMemo(() => {
+    const taskMap = {};
+    
+    statuses.forEach(status => {
+      taskMap[status] = tasks.filter(task => {
+        if (!task) return false;
+        
+        // Compare statuses case-insensitively
+        const taskStatus = typeof task.status === 'string' ? task.status.toLowerCase() : '';
+        const columnStatus = typeof status === 'string' ? status.toLowerCase() : '';
+        
+        return taskStatus === columnStatus;
+      });
+    });
+    
+    return taskMap;
+  }, [tasks, statuses]);
+  
   // Handle drag start
-  const handleDragStart = (e, taskId, status) => {
-    dragItem.current = { taskId, status };
+  const handleDragStart = useCallback((e, taskId, status) => {
+    // Ensure taskId is a string for consistency
+    const taskIdString = String(taskId);
+    
+    // Store the current task info for drag tracking
+    dragItem.current = { taskId: taskIdString, status };
     dragNode.current = e.target;
     dragNode.current.addEventListener('dragend', handleDragEnd);
     
+    // Set a timeout to avoid flickering
     setTimeout(() => {
-      setDraggedTask(taskId);
+      setDraggedTask(taskIdString);
     }, 0);
     
-    e.dataTransfer.setData('text/plain', taskId);
-    e.dataTransfer.effectAllowed = 'move';
-  };
-  
-  // Handle drag end
-  const handleDragEnd = () => {
-    setDraggedTask(null);
-    dragNode.current.removeEventListener('dragend', handleDragEnd);
-    dragItem.current = null;
-    dragNode.current = null;
-  };
-  
-  // Handle drag over
-  const handleDragOver = (e) => {
-    e.preventDefault();
-    e.dataTransfer.dropEffect = 'move';
-  };
-  
-  // Handle drop
-  const handleDrop = (e, columnStatus) => {
-    e.preventDefault();
-    
-    const taskId = parseInt(e.dataTransfer.getData('text/plain'));
-    const sourceStatus = dragItem.current.status;
-    
-    if (sourceStatus !== columnStatus) {
-      onTaskMove(taskId, columnStatus);
+    try {
+      // Set the data transfer payload
+      e.dataTransfer.setData('text/plain', taskIdString);
+      e.dataTransfer.effectAllowed = 'move';
+    } catch (error) {
+      console.error('Error setting drag data:', error);
     }
     
+    console.log(`Started dragging task: ${taskIdString} from ${status}`);
+  }, [setDraggedTask]);
+  
+  // Handle drag end
+  const handleDragEnd = useCallback(() => {
+    console.log(`Drag ended for task: ${draggedTask}`);
     setDraggedTask(null);
-  };
+    
+    if (dragNode.current) {
+      dragNode.current.removeEventListener('dragend', handleDragEnd);
+    }
+    
+    dragItem.current = null;
+    dragNode.current = null;
+  }, [draggedTask, setDraggedTask]);
+  
+  // Handle drag over
+  const handleDragOver = useCallback((e) => {
+    e.preventDefault();
+    e.dataTransfer.dropEffect = 'move';
+  }, []);
+  
+  // Handle drop
+  const handleDrop = useCallback((e, columnStatus) => {
+    e.preventDefault();
+    
+    try {
+      // Get the task ID from the data transfer
+      const taskId = e.dataTransfer.getData('text/plain');
+      
+      if (!taskId || !dragItem.current) {
+        console.error('Drop error: missing taskId or dragItem');
+        return;
+      }
+      
+      const sourceStatus = dragItem.current.status;
+      
+      console.log(`Dropping task ${taskId} from ${sourceStatus} to ${columnStatus}`);
+      
+      // Only update if the status has changed
+      if (sourceStatus !== columnStatus) {
+        // Call the parent component's move function with the task ID and new status
+        onTaskMove(taskId, columnStatus);
+      }
+    } catch (error) {
+      console.error('Error during drop operation:', error);
+    } finally {
+      setDraggedTask(null);
+    }
+  }, [onTaskMove, setDraggedTask, dragItem]);
   
   // Handle new task submission
   const handleAddTask = (status) => {
-    if (!newTaskData.title.trim()) return;
+    if (!newTaskData.title.trim()) {
+      console.warn("Cannot create task: Title is required");
+      return;
+    }
     
+    // Ensure status is properly set
     const task = {
       ...newTaskData,
-      status,
+      status, // Make sure the status is passed correctly
       id: Date.now(), // temporary ID until backend assigns one
       subtasks: [],
       attachments: [],
       history: [{ action: 'created', timestamp: new Date().toISOString() }]
     };
     
-    onTaskCreate(task);
+    console.log("Creating new task with status:", status, task);
+    
+    // Clear the form before sending the task to ensure UI is responsive
     setNewTaskData({ title: '', description: '', assignedTo: null, priority: 'Medium', dueDate: '' });
     setShowAddTask(null);
+    
+    // Call the parent component's create function
+    onTaskCreate(task);
   };
   
   // Handle new column/status creation
@@ -145,7 +367,7 @@ const KanbanBoard = ({
           >
             <div className="kanban-column-header">
               <h3>{status}</h3>
-              <span className="task-count">{tasks.filter(t => t.status === status).length}</span>
+              <span className="task-count">{tasksByColumn[status]?.length || 0}</span>
               <button 
                 className="add-task-button" 
                 onClick={() => setShowAddTask(status)}
@@ -156,141 +378,25 @@ const KanbanBoard = ({
             </div>
             
             <div className="tasks-container">
-              {tasks
-                .filter(task => task.status === status)
-                .map(task => (
-                  <div 
-                    key={task.id}
-                    className={`task-card ${draggedTask === task.id ? 'dragging' : ''}`}
-                    draggable
-                    onDragStart={(e) => handleDragStart(e, task.id, status)}
-                  >
-                    {editingTask === task.id ? (
-                      <div className="task-edit-form">
-                        <input
-                          type="text"
-                          value={task.title}
-                          onChange={(e) => onTaskUpdate({ ...task, title: e.target.value })}
-                          className="task-edit-title"
-                        />
-                        <textarea
-                          value={task.description || ''}
-                          onChange={(e) => onTaskUpdate({ ...task, description: e.target.value })}
-                          className="task-edit-description"
-                          placeholder="Add description..."
-                        />
-                        <div className="task-edit-row">
-                          <label>Assigned to:</label>
-                          <select 
-                            value={task.assignedTo || ''}
-                            onChange={(e) => onTaskUpdate({ ...task, assignedTo: e.target.value ? parseInt(e.target.value) : null })}
-                          >
-                            <option value="">Unassigned</option>
-                            {users.map(user => (
-                              <option key={user.id} value={user.id}>{user.name}</option>
-                            ))}
-                          </select>
-                        </div>
-                        <div className="task-edit-row">
-                          <label>Priority:</label>
-                          <select
-                            value={task.priority || 'Medium'}
-                            onChange={(e) => onTaskUpdate({ ...task, priority: e.target.value })}
-                          >
-                            <option>Low</option>
-                            <option>Medium</option>
-                            <option>High</option>
-                          </select>
-                        </div>
-                        <div className="task-edit-row">
-                          <label>Due date:</label>
-                          <input
-                            type="date"
-                            value={task.dueDate || ''}
-                            onChange={(e) => onTaskUpdate({ ...task, dueDate: e.target.value })}
-                          />
-                        </div>
-                        <div className="task-edit-actions">
-                          <button 
-                            className="save-task-btn"
-                            onClick={() => setEditingTask(null)}
-                          >
-                            Save
-                          </button>
-                          <button 
-                            className="cancel-edit-btn"
-                            onClick={() => setEditingTask(null)}
-                          >
-                            Cancel
-                          </button>
-                        </div>
-                      </div>
-                    ) : (
-                      <>
-                        <div className="task-header">
-                          <div className={`task-priority ${getPriorityClass(task.priority)}`}>
-                            <FaFlag />
-                          </div>
-                          <div className="task-menu-container">
-                            <button 
-                              className="task-menu-button" 
-                              onClick={() => setTaskMenuOpen(taskMenuOpen === task.id ? null : task.id)}
-                              aria-label="Task menu"
-                            >
-                              <FaEllipsisH />
-                            </button>
-                            {taskMenuOpen === task.id && (
-                              <div className="task-menu">
-                                <button onClick={() => setEditingTask(task.id)}>
-                                  Edit
-                                </button>
-                                <button className="delete-btn" onClick={() => onTaskDelete(task.id)}>
-                                  Delete
-                                </button>
-                              </div>
-                            )}
-                          </div>
-                        </div>
-                        <h4 className="task-title">{task.title}</h4>
-                        {task.description && (
-                          <p className="task-description">{task.description}</p>
-                        )}
-                        <div className="task-footer">
-                          {task.dueDate && (
-                            <div className={`task-due-date ${getDueDateClass(task.dueDate)}`}>
-                              <FaClock />
-                              <span>{formatDate(task.dueDate)}</span>
-                            </div>
-                          )}
-                          {task.assignedTo ? (
-                            <div className="task-assignee">
-                              <img 
-                                src={users.find(u => u.id === task.assignedTo)?.avatar || `https://ui-avatars.com/api/?name=${encodeURIComponent(users.find(u => u.id === task.assignedTo)?.name || 'User')}`} 
-                                alt={users.find(u => u.id === task.assignedTo)?.name} 
-                              />
-                            </div>
-                          ) : (
-                            <div className="task-unassigned">
-                              <FaUser />
-                            </div>
-                          )}
-                          {task.attachments?.length > 0 && (
-                            <div className="task-attachments">
-                              <FaPaperclip />
-                              <span>{task.attachments.length}</span>
-                            </div>
-                          )}
-                          {task.subtasks?.length > 0 && (
-                            <div className="task-subtasks">
-                              <FaCheckCircle />
-                              <span>{task.subtasks.filter(s => s.done).length}/{task.subtasks.length}</span>
-                            </div>
-                          )}
-                        </div>
-                      </>
-                    )}
-                  </div>
-                ))}
+              {tasksByColumn[status]?.map(task => (
+                <TaskCard 
+                  key={task.id}
+                  task={task}
+                  status={status}
+                  draggedTask={draggedTask}
+                  onDragStart={handleDragStart}
+                  onTaskUpdate={onTaskUpdate}
+                  onTaskDelete={onTaskDelete}
+                  onEditTask={setEditingTask}
+                  users={users}
+                  getPriorityClass={getPriorityClass}
+                  getDueDateClass={getDueDateClass}
+                  formatDate={formatDate}
+                  taskMenuOpen={taskMenuOpen}
+                  setTaskMenuOpen={setTaskMenuOpen}
+                  editingTask={editingTask}
+                />
+              ))}
               
               {showAddTask === status && (
                 <div className="add-task-form">
@@ -310,7 +416,7 @@ const KanbanBoard = ({
                     <label>Assigned to:</label>
                     <select 
                       value={newTaskData.assignedTo || ''}
-                      onChange={(e) => setNewTaskData({...newTaskData, assignedTo: e.target.value ? parseInt(e.target.value) : null})}
+                      onChange={(e) => setNewTaskData({...newTaskData, assignedTo: e.target.value || null})}
                     >
                       <option value="">Unassigned</option>
                       {users.map(user => (

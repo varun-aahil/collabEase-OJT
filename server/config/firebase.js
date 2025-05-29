@@ -39,11 +39,7 @@ const initializeFirebase = () => {
         // Load from a file
         const serviceAccount = require(serviceAccountPath);
         
-        // Validate the private key format
-        if (!serviceAccount.private_key || 
-            !serviceAccount.private_key.includes('-----BEGIN PRIVATE KEY-----')) {
-          throw new Error('Invalid private key format. The private key must be in PEM format and include "-----BEGIN PRIVATE KEY-----"');
-        }
+        console.log('Service account loaded successfully. Project ID:', serviceAccount.project_id);
         
         app = initializeApp({
           credential: cert(serviceAccount)
@@ -55,10 +51,14 @@ const initializeFirebase = () => {
     }
     
     // Initialize Auth
-    getAuth(app);
+    const auth = getAuth(app);
+    console.log('Firebase Auth initialized successfully');
     
-    console.log('Firebase initialized successfully');
-    return getFirestore();
+    // Initialize Firestore
+    const db = getFirestore(app);
+    console.log('Firestore initialized successfully');
+    
+    return db;
   } catch (error) {
     console.error('Error initializing Firebase:', error);
     

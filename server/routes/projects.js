@@ -5,12 +5,18 @@ const { isAuthenticated } = require("../middleware/auth");
 // Get all projects for the authenticated user
 router.get("/", isAuthenticated, async (req, res) => {
   try {
+    console.log("GET /api/projects - User authenticated:", req.user.id);
     const db = req.db;
     const projectsRef = db.collection('projects');
     
     // Query projects where user is owner or team member
+    console.log("Querying projects for owner:", req.user.id);
     const ownerQuery = await projectsRef.where('owner', '==', req.user.id).get();
+    console.log(`Found ${ownerQuery.docs.length} projects as owner`);
+    
+    console.log("Querying projects for team member:", req.user.id);
     const memberQuery = await projectsRef.where('teamMembers', 'array-contains', req.user.id).get();
+    console.log(`Found ${memberQuery.docs.length} projects as team member`);
     
     // Combine results
     const projectDocs = [...ownerQuery.docs, ...memberQuery.docs];

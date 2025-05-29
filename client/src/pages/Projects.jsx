@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useCallback } from "react";
 import { Link } from "react-router-dom";
 import io from "socket.io-client";
 import Sidebar from '../components/Sidebar';
@@ -17,13 +17,13 @@ const users = [
 
 const defaultStatuses = ["To Do", "In Progress", "Completed"];
 
-const socket = io("http://localhost:5000", { transports: ['websocket'] }); // Adjust backend URL as needed
+const socket = io("http://localhost:5001", { transports: ['websocket'] }); // Adjust backend URL as needed
 
 function Projects({ user, setUser }) {
   const [projects, setProjects] = useState([]);
   const [selectedProjectId, setSelectedProjectId] = useState(null);
   const [tasks, setTasks] = useState([]);
-  const [statuses, setStatuses] = useState(defaultStatuses);
+  const [statuses, setStatuses] = useState(['To Do', 'In Progress', 'Completed']);
   const [filterStatus, setFilterStatus] = useState("All");
   const [filterTag, setFilterTag] = useState(null);
   const [filterUser, setFilterUser] = useState(null);
@@ -57,11 +57,35 @@ function Projects({ user, setUser }) {
       try {
         setLoading(true);
         setError(null);
+        console.log("Fetching projects...");
+        const token = localStorage.getItem('authToken');
+        console.log("Auth token exists:", !!token);
+        if (!token) {
+          setError("Authentication error: No token found. Please log in again.");
+          setLoading(false);
+          return;
+        }
+        
         const response = await getProjects();
+        console.log("Projects fetched successfully:", response.data);
         setProjects(response.data);
       } catch (error) {
         console.error("Error fetching projects:", error);
-        setError("Failed to load projects. Please try again later.");
+        if (error.response) {
+          console.error("Response status:", error.response.status);
+          console.error("Response data:", error.response.data);
+          
+          if (error.response.status === 401) {
+            setError("Authentication error: Please log in again");
+          } else {
+            setError(`Failed to load projects: ${error.response.data.message || error.message}`);
+          }
+        } else if (error.request) {
+          console.error("No response received:", error.request);
+          setError("Network error: Server not responding. Please try again.");
+        } else {
+          setError(`Error: ${error.message}`);
+        }
       } finally {
         setLoading(false);
       }
@@ -78,8 +102,22 @@ function Projects({ user, setUser }) {
       try {
         setLoading(true);
         setError(null);
+        console.log(`Fetching tasks for project: ${selectedProjectId}`);
+        
+        const startTime = performance.now();
         const response = await getProjectTasks(selectedProjectId);
-        setTasks(response.data);
+        const endTime = performance.now();
+        
+        console.log(`Tasks fetched in ${(endTime - startTime).toFixed(2)}ms`, response.data);
+        
+        // Ensure tasks have the correct status format
+        const normalizedTasks = response.data.map(task => ({
+          ...task,
+          // Ensure status is one of the standard statuses
+          status: statuses.includes(task.status) ? task.status : 'To Do'
+        }));
+        
+        setTasks(normalizedTasks);
       } catch (error) {
         console.error("Error fetching tasks:", error);
         setError("Failed to load tasks. Please try again later.");
@@ -89,7 +127,7 @@ function Projects({ user, setUser }) {
     };
     
     fetchTasks();
-  }, [selectedProjectId]);
+  }, [selectedProjectId, statuses]);
   
   // Calculate progress for each project
   useEffect(() => {
@@ -110,39 +148,111 @@ function Projects({ user, setUser }) {
     );
   }, [tasks, selectedProjectId]);
 
+  // Handle project selection
+  const handleProjectSelect = useCallback(async (projectId) => {
+    console.log(`Selecting project: ${projectId}`);
+    
+    // Set loading state
+    setLoading(true);
+    
+    try {
+      // Set the selected project ID first for immediate UI feedback
+      setSelectedProjectId(projectId);
+      
+      // Then fetch tasks in the background
+      const response = await getProjectTasks(projectId);
+      console.log(`Fetched ${response.data.length} tasks for project: ${projectId}`);
+      
+      // Normalize tasks to ensure consistent status format
+      const normalizedTasks = response.data.map(task => ({
+        ...task,
+        status: statuses.includes(task.status) ? task.status : 'To Do'
+      }));
+      
+      setTasks(normalizedTasks);
+    } catch (error) {
+      console.error(`Error selecting project ${projectId}:`, error);
+      setError("Failed to load project tasks. Please try again.");
+    } finally {
+      setLoading(false);
+    }
+  }, [statuses]);
+  
   // Handle task move in Kanban board
   const handleTaskMove = async (taskId, newStatus) => {
     try {
-      // Update task status in the database
-      await updateTaskStatus(taskId, newStatus);
+      console.log(`Moving task ${taskId} to ${newStatus}`);
       
-      // Update local state
+      // Optimistic update - update UI immediately before server response
       setTasks(prevTasks => {
-        const updatedTasks = prevTasks.map(task =>
+        return prevTasks.map(task =>
           task.id === taskId
             ? { ...task, status: newStatus }
             : task
         );
-        return updatedTasks;
       });
+      
+      // Then update on server
+      const response = await updateTaskStatus(taskId, newStatus);
+      
+      // Update with server response to ensure consistency
+      setTasks(prevTasks =>
+        prevTasks.map(task =>
+          task.id === taskId ? response.data : task
+        )
+      );
       
       socket.emit("task-update", `Task moved to ${newStatus}`);
     } catch (error) {
       console.error("Error updating task status:", error);
       setError("Failed to update task status. Please try again.");
+      
+      // Revert back to original state if there's an error
+      setTasks(prevTasks => [...prevTasks]);
     }
   };
   
   // Handle new task creation
   const handleTaskCreate = async (newTask) => {
     try {
+      // Check if project is selected
+      if (!selectedProjectId) {
+        console.error("Cannot create task: No project selected");
+        setError("Cannot create task: No project selected");
+        return;
+      }
+      
       const taskWithProject = {
         ...newTask,
         project: selectedProjectId
       };
       
+      console.log(`Creating new task for project: ${selectedProjectId}`, taskWithProject);
+      
+      // Create a temporary ID for the task
+      const tempId = `temp-${Date.now()}`;
+      
+      // Add task to state immediately with temporary ID for instant feedback
+      const tempTask = {
+        ...taskWithProject,
+        id: tempId,
+        createdAt: new Date().toISOString(),
+        updatedAt: new Date().toISOString()
+      };
+      
+      // Update UI optimistically
+      setTasks(prevTasks => [...prevTasks, tempTask]);
+      
+      // Send request to server
       const response = await createTask(taskWithProject);
-      setTasks(prevTasks => [...prevTasks, response.data]);
+      console.log('Task created, response:', response.data);
+      
+      // Replace temp task with real one from server
+      setTasks(prevTasks => prevTasks
+        .filter(t => t.id !== tempId) // Remove the temporary task
+        .concat(response.data) // Add the real task with server-assigned ID
+      );
+      
       socket.emit("task-update", `New task created: ${newTask.title}`);
     } catch (error) {
       console.error("Error creating task:", error);
@@ -217,7 +327,19 @@ function Projects({ user, setUser }) {
 
   // Filter tasks for selected project
   const projectTasks = selectedProjectId
-    ? tasks.filter(t => t.projectId === selectedProjectId || t.project === selectedProjectId)
+    ? tasks.filter(t => {
+        // Match by either projectId or project field
+        const matchesProjectId = t.projectId === selectedProjectId;
+        const matchesProject = t.project === selectedProjectId;
+        
+        // For objects, compare the ID
+        const matchesProjectObject = t.project && typeof t.project === 'object' && t.project.id === selectedProjectId;
+        
+        // Log task data if debugging is needed
+        // console.log('Task:', t.id, 'Project match?', matchesProjectId || matchesProject || matchesProjectObject);
+        
+        return matchesProjectId || matchesProject || matchesProjectObject;
+      })
     : [];
 
   // Stats
@@ -234,7 +356,7 @@ function Projects({ user, setUser }) {
   let filteredTasks = projectTasks.filter((task) => {
     if (showStarred && !task.pinned) return false;
     if (filterTag && !task.tags?.includes(filterTag)) return false;
-    if (filterUser && filterUser !== "unassigned" && task.assignedTo !== parseInt(filterUser)) return false;
+    if (filterUser && filterUser !== "unassigned" && task.assignedTo !== filterUser) return false;
     if (filterUser === "unassigned" && task.assignedTo) return false;
     if (search && !task.title.toLowerCase().includes(search.toLowerCase())) return false;
     if (filterStatus !== "All" && task.status !== filterStatus) return false;
@@ -360,7 +482,7 @@ function Projects({ user, setUser }) {
                 .filter(project => filterStatus === "All" || project.status === filterStatus)
                 .filter(project => !search || project.name.toLowerCase().includes(search.toLowerCase()) || project.description.toLowerCase().includes(search.toLowerCase()))
                 .map(project => (
-                <div key={project.id} className="project-card" onClick={() => setSelectedProjectId(project.id)}>
+                <div key={project.id} className="project-card" onClick={() => handleProjectSelect(project.id)}>
                   <div className="project-header">
                     <h3>{project.name}</h3>
                     <span className={`project-status ${getStatusClass(project.status)}`}>
