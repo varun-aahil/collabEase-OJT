@@ -17,7 +17,6 @@
 /server/.env
 
 # Firebase
-serviceAccountKey.json
 *-firebase-adminsdk-*.json
 
 # OS generated files
