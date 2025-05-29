@@ -342,7 +342,7 @@ function Dashboard({ user, setUser }) {
 
         {/* Stats Cards */}
         <section className="dashboard-stats-pro">
-          <div className="stat-card-pro">
+          <div className="stat-card-pro" onClick={() => navigate('/projects')} style={{ cursor: 'pointer' }}>
             <div className="stat-icon stat-projects">
               <FaFolder />
             </div>
@@ -351,7 +351,7 @@ function Dashboard({ user, setUser }) {
               <div className="stat-value">{projects.length}</div>
             </div>
           </div>
-          <div className="stat-card-pro">
+          <div className="stat-card-pro" onClick={() => navigate('/projects')} style={{ cursor: 'pointer' }}>
             <div className="stat-icon stat-tasks">
               <FaTasks />
             </div>
@@ -360,7 +360,7 @@ function Dashboard({ user, setUser }) {
               <div className="stat-value">{stats.totalTasks || 12}</div>
             </div>
           </div>
-          <div className="stat-card-pro">
+          <div className="stat-card-pro" onClick={() => navigate('/projects')} style={{ cursor: 'pointer' }}>
             <div className="stat-icon stat-completed">
               <FaCheckCircle />
             </div>
@@ -369,7 +369,7 @@ function Dashboard({ user, setUser }) {
               <div className="stat-value">{stats.completedTasks || 5}</div>
             </div>
           </div>
-          <div className="stat-card-pro">
+          <div className="stat-card-pro" onClick={() => navigate('/projects')} style={{ cursor: 'pointer' }}>
             <div className="stat-icon stat-overdue">
               <FaExclamationCircle />
             </div>
@@ -399,7 +399,7 @@ function Dashboard({ user, setUser }) {
                 <div className="empty-state">
                   <FaTasks style={{ fontSize: '32px', marginBottom: '12px', opacity: 0.5 }} />
                   <p>No tasks assigned to you</p>
-                  <button className="add-button">Add New Task</button>
+                  <button className="add-button" onClick={() => navigate('/projects')}>Add New Task</button>
                 </div>
               )}
             </div>
@@ -474,7 +474,7 @@ function Dashboard({ user, setUser }) {
           <section className="team-section">
             <div className="section-header-pro">
               <h3>Team Members</h3>
-              <button className="add-team-btn">Add Member</button>
+              <button className="add-team-btn" onClick={() => navigate('/team')}>View All Members</button>
             </div>
             {showSuccess && (
               <div className="team-success-alert">User deleted successfully!</div>
