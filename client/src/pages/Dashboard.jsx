@@ -1,16 +1,17 @@
 import { useState, useEffect } from "react";
 import { useNavigate, Link } from "react-router-dom";
-import axios from "axios";
 import "../styles/Dashboard.css";
 import { FaUserEdit, FaTrash, FaCheckCircle, FaClock, FaFolder, FaTasks, FaExclamationCircle, FaBell, FaUserCircle, FaSignOutAlt, FaSearch } from 'react-icons/fa';
 import Sidebar from '../components/Sidebar';
 import Topbar from '../components/Topbar';
 import LogoutButton from '../components/LogoutButton';
+import { getProjects, getMyTasks, getUsers } from '../utils/api';
 
 function Dashboard({ user, setUser }) {
   const navigate = useNavigate();
   const [projects, setProjects] = useState([]);
   const [tasks, setTasks] = useState([]);
+  const [teamMembers, setTeamMembers] = useState([]);
   const [stats, setStats] = useState({
     totalTasks: 0,
     overdueTasks: 0,
@@ -61,45 +62,14 @@ function Dashboard({ user, setUser }) {
     }
   ]);
   const [showSuccess, setShowSuccess] = useState(false);
-
-  // Mock team members for demo
-  const teamMembers = [
-    {
-      id: 1,
-      name: 'Sanket Jadhav',
-      email: 'sanket3280@gmail.com',
-      status: 'Active',
-      role: 'Member',
-      avatar: '',
-    },
-    {
-      id: 2,
-      name: 'Sanket tanaji jadhav',
-      email: 'sankettanaj.p24@medhaviskil...',
-      status: 'Active',
-      role: 'Member',
-      avatar: '',
-    },
-    {
-      id: 3,
-      name: '25F1001327 SANKET JADHAV',
-      email: '25f1001327@ds.study.iitm.ac...',
-      status: 'Active',
-      role: 'Member',
-      avatar: '',
-    },
-    {
-      id: 4,
-      name: 'Sanket Jadhav',
-      email: 'sj546400@gmail.com',
-      status: 'Active',
-      role: 'Member',
-      avatar: 'https://ui-avatars.com/api/?name=Sanket+Jadhav&background=000000&color=fff',
-    },
-  ];
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState(null);
 
   useEffect(() => {
     fetchProjects();
+    fetchTasks();
+    fetchTeamMembers();
+    
     // Fetch user profile photo
     const fetchUserPhoto = async () => {
       try {
@@ -112,46 +82,81 @@ function Dashboard({ user, setUser }) {
 
     fetchUserPhoto();
   }, [user]);
+  
+  // Calculate task statistics whenever tasks change
+  useEffect(() => {
+    if (tasks.length > 0) {
+      const today = new Date();
+      today.setHours(0, 0, 0, 0);
+      
+      const completedTasks = tasks.filter(task => task.status === "Completed").length;
+      
+      // Calculate overdue tasks (due date is before today and not completed)
+      const overdueTasks = tasks.filter(task => {
+        if (!task.dueDate || task.status === "Completed") return false;
+        const dueDate = new Date(task.dueDate);
+        dueDate.setHours(0, 0, 0, 0);
+        return dueDate < today;
+      }).length;
+      
+      // Calculate tasks due today
+      const todayTasks = tasks.filter(task => {
+        if (!task.dueDate) return false;
+        const dueDate = new Date(task.dueDate);
+        dueDate.setHours(0, 0, 0, 0);
+        return dueDate.getTime() === today.getTime();
+      }).length;
+      
+      setStats({
+        totalTasks: tasks.length,
+        completedTasks,
+        overdueTasks,
+        todayTasks
+      });
+    } else {
+      // Reset stats if no tasks
+      setStats({
+        totalTasks: 0,
+        completedTasks: 0,
+        overdueTasks: 0,
+        todayTasks: 0
+      });
+    }
+  }, [tasks]);
 
   const fetchProjects = async () => {
     try {
-      // For demo purposes, we'll use mock data if API call fails
-      const mockProjects = [
-        {
-          id: 1,
-          title: "Website Redesign",
-          description: "Complete overhaul of company website with modern UI",
-          status: "In Progress"
-        },
-        {
-          id: 2,
-          title: "Mobile App Development",
-          description: "Cross-platform mobile application for customer engagement",
-          status: "Planning"
-        },
-        {
-          id: 3,
-          title: "Marketing Campaign",
-          description: "Q2 digital marketing campaign for new product launch",
-          status: "On Hold"
-        }
-      ];
+      setLoading(true);
+      setError(null);
       
-      try {
-        const response = await axios.get("http://localhost:5000/api/projects", {
-          withCredentials: true,
-          headers: {
-            'Accept': 'application/json',
-            'Content-Type': 'application/json'
-          }
-        });
-        setProjects(response.data);
-      } catch (error) {
-        console.error("Error fetching projects:", error);
-        setProjects(mockProjects);
-      }
+      const response = await getProjects();
+      setProjects(response.data);
     } catch (error) {
-      console.error("Error in fetchProjects:", error);
+      console.error("Error fetching projects:", error);
+      setError("Failed to fetch projects. Please try again later.");
+    } finally {
+      setLoading(false);
+    }
+  };
+  
+  const fetchTasks = async () => {
+    try {
+      const response = await getMyTasks();
+      setTasks(response.data);
+    } catch (error) {
+      console.error("Error fetching tasks:", error);
+      // Don't set error state here to avoid overriding project errors
+    }
+  };
+  
+  const fetchTeamMembers = async () => {
+    try {
+      const response = await getUsers();
+      setTeamMembers(response.data);
+    } catch (error) {
+      console.error("Error fetching team members:", error);
+      // Fallback to empty array if error
+      setTeamMembers([]);
     }
   };
 
@@ -357,7 +362,7 @@ function Dashboard({ user, setUser }) {
             </div>
             <div className="stat-info">
               <div className="stat-title">Total Tasks</div>
-              <div className="stat-value">{stats.totalTasks || 12}</div>
+              <div className="stat-value">{stats.totalTasks}</div>
             </div>
           </div>
           <div className="stat-card-pro">
@@ -366,7 +371,7 @@ function Dashboard({ user, setUser }) {
             </div>
             <div className="stat-info">
               <div className="stat-title">Completed</div>
-              <div className="stat-value">{stats.completedTasks || 5}</div>
+              <div className="stat-value">{stats.completedTasks}</div>
             </div>
           </div>
           <div className="stat-card-pro">
@@ -375,7 +380,7 @@ function Dashboard({ user, setUser }) {
             </div>
             <div className="stat-info">
               <div className="stat-title">Overdue</div>
-              <div className="stat-value">{stats.overdueTasks || 2}</div>
+              <div className="stat-value">{stats.overdueTasks}</div>
             </div>
           </div>
         </section>
@@ -388,11 +393,29 @@ function Dashboard({ user, setUser }) {
               <button className="view-all-link">View all</button>
             </div>
             <div className="my-tasks-list">
-              {tasks && tasks.length > 0 ? (
+              {loading ? (
+                <div className="loading-state">
+                  <p>Loading tasks...</p>
+                </div>
+              ) : error ? (
+                <div className="error-state">
+                  <p>{error}</p>
+                </div>
+              ) : tasks && tasks.length > 0 ? (
                 tasks.map(task => (
                   <div key={task.id} className="task-item">
                     <h4>{task.title}</h4>
                     <p>{task.description}</p>
+                    <div className="task-meta">
+                      <span className={`task-status status-${task.status?.toLowerCase().replace(/\s+/g, '-')}`}>
+                        {task.status}
+                      </span>
+                      {task.dueDate && (
+                        <span className="task-due-date">
+                          Due: {formatDate(task.dueDate)}
+                        </span>
+                      )}
+                    </div>
                   </div>
                 ))
               ) : (
@@ -480,35 +503,46 @@ function Dashboard({ user, setUser }) {
               <div className="team-success-alert">User deleted successfully!</div>
             )}
             <div className="team-grid">
-              {teamMembers.map(member => (
-                <div className="team-card" key={member.id}>
-                  <div className="team-card-avatar">
-                    {member.avatar ? (
-                      <img src={member.avatar} alt={member.name} />
-                    ) : (
-                      <span>{member.name[0]}</span>
-                    )}
-                  </div>
-                  <div className="team-card-info">
-                    <div className="team-card-name">{member.name}</div>
-                    <div className="team-card-email">{member.email}</div>
-                    <div className="team-card-badges">
-                      <span className="badge badge-active">Active</span>
-                      <span className="badge badge-role">Member</span>
+              {loading ? (
+                <div className="loading-state">
+                  <p>Loading team members...</p>
+                </div>
+              ) : teamMembers.length > 0 ? (
+                teamMembers.map(member => (
+                  <div className="team-card" key={member.id}>
+                    <div className="team-card-avatar">
+                      {member.image || member.photoURL ? (
+                        <img src={member.image || member.photoURL} alt={member.displayName} />
+                      ) : (
+                        <span>{member.displayName ? member.displayName[0] : "U"}</span>
+                      )}
+                    </div>
+                    <div className="team-card-info">
+                      <div className="team-card-name">{member.displayName || "User"}</div>
+                      <div className="team-card-email">{member.email}</div>
+                      <div className="team-card-badges">
+                        <span className="badge badge-active">Active</span>
+                        <span className="badge badge-role">Member</span>
+                      </div>
+                    </div>
+                    <div className="team-card-actions">
+                      <button className="team-action-btn" title="Edit User"><FaUserEdit /></button>
+                      <button 
+                        className="team-action-btn" 
+                        title="Delete User"
+                        onClick={() => setShowSuccess(true)}
+                      >
+                        <FaTrash />
+                      </button>
                     </div>
                   </div>
-                  <div className="team-card-actions">
-                    <button className="team-action-btn" title="Edit User"><FaUserEdit /></button>
-                    <button 
-                      className="team-action-btn" 
-                      title="Delete User"
-                      onClick={() => setShowSuccess(true)}
-                    >
-                      <FaTrash />
-                    </button>
-                  </div>
+                ))
+              ) : (
+                <div className="empty-state">
+                  <p>No team members found</p>
+                  <button className="add-button">Add Team Member</button>
                 </div>
-              ))}
+              )}
             </div>
           </section>
         </div>

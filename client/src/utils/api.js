@@ -38,4 +38,9 @@ export const createTask = (taskData) => api.post('/api/tasks', taskData);
 export const updateTaskStatus = (taskId, status) => api.patch(`/api/tasks/${taskId}/status`, { status });
 export const deleteTask = (taskId) => api.delete(`/api/tasks/${taskId}`);
 
+// Users API
+export const getUsers = () => api.get('/api/users');
+export const getCurrentUser = () => api.get('/api/users/me');
+export const updateUser = (userData) => api.put('/api/users', userData);
+
 export default api; 
