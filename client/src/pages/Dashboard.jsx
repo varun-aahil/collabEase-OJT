@@ -390,7 +390,7 @@ function Dashboard({ user, setUser }) {
           <section className="my-tasks-section">
             <div className="section-header-pro">
               <h3>My Tasks</h3>
-              <button className="view-all-link">View all</button>
+              <Link to="/projects" className="view-all-link" style={{ textDecoration: 'none' }}>View all</Link>
             </div>
             <div className="my-tasks-list">
               {loading ? (
@@ -430,7 +430,7 @@ function Dashboard({ user, setUser }) {
           <section className="recent-activity-section">
             <div className="section-header-pro">
               <h3>Recent Activity</h3>
-              <button className="view-all-link">View all</button>
+              <Link to="/profile" className="view-all-link" style={{ textDecoration: 'none' }}>View all</Link>
             </div>
             <div className="recent-activity-list">
               {recentActivity.length > 0 ? (
