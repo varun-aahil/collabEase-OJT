@@ -22,7 +22,7 @@ const mockProjects = [
     description: "Revamp the company website with modern UI and improved user experience. Focus on mobile responsiveness and performance optimization.",
     due: "2024-07-01", 
     status: "Active", 
-    progress: 65,
+    progress: 0,
     members: [1, 2]
   },
   { 
@@ -31,7 +31,7 @@ const mockProjects = [
     description: "Build the new mobile app for iOS and Android platforms. Implement core functionality and integrate with existing backend systems.",
     due: "2024-08-15", 
     status: "Planning",
-    progress: 20,
+    progress: 0,
     members: [2, 3]
   },
   { 
@@ -40,7 +40,7 @@ const mockProjects = [
     description: "Launch summer marketing campaign across digital channels. Create content, design assets, and track performance metrics.",
     due: "2024-06-20", 
     status: "Active",
-    progress: 85,
+    progress: 0,
     members: [1, 3]
   },
   { 
@@ -49,7 +49,7 @@ const mockProjects = [
     description: "Develop a self-service customer portal for account management and support. Implement authentication, profile management, and ticketing system.",
     due: "2024-09-30", 
     status: "Planning",
-    progress: 10,
+    progress: 0,
     members: [1, 2, 3]
   },
 ];
@@ -164,18 +164,90 @@ function Projects({ user, setUser }) {
     });
     return () => socket.off("task-update");
   }, []);
+  
+  // Calculate initial progress for each project
+  useEffect(() => {
+    const updatedProjects = projects.map(project => {
+      const projectTasks = tasks.filter(t => t.projectId === project.id);
+      const totalTasks = projectTasks.length;
+      const completedTasks = projectTasks.filter(t => t.status === "Completed").length;
+      
+      // Calculate progress - if no tasks, progress is 0
+      const newProgress = totalTasks === 0 ? 0 : Math.round((completedTasks / totalTasks) * 100);
+      
+      return {
+        ...project,
+        progress: newProgress
+      };
+    });
+    
+    setProjects(updatedProjects);
+  }, [tasks]); // Run whenever tasks change, not just on mount
 
   // Handle task move in Kanban board
   const handleTaskMove = (taskId, newStatus) => {
-    setTasks(prevTasks =>
-      prevTasks.map(task =>
+    // First update the task status
+    setTasks(prevTasks => {
+      const updatedTasks = prevTasks.map(task =>
         task.id === taskId
           ? { ...task, status: newStatus }
           : task
-      )
-    );
+      );
+      
+      // Get the task that was moved
+      const movedTask = updatedTasks.find(t => t.id === taskId);
+      
+      // If we found the task, update the project progress
+      if (movedTask) {
+        const projectId = movedTask.projectId;
+        
+        // Get all tasks for this project after the update
+        const projectTasks = updatedTasks.filter(t => t.projectId === projectId);
+        const totalTasks = projectTasks.length;
+        const completedTasks = projectTasks.filter(t => t.status === "Completed").length;
+        
+        // Calculate new progress percentage
+        const newProgress = totalTasks === 0 ? 0 : Math.round((completedTasks / totalTasks) * 100);
+        
+        // Update the project's progress
+        setProjects(prevProjects =>
+          prevProjects.map(project =>
+            project.id === projectId
+              ? { ...project, progress: newProgress }
+              : project
+          )
+        );
+      }
+      
+      // Save tasks to localStorage
+      localStorage.setItem('tasks', JSON.stringify(updatedTasks));
+      
+      return updatedTasks;
+    });
+    
     socket.emit("task-update", `Task moved to ${newStatus}`);
   };
+  
+  // Load data from localStorage when component mounts
+  useEffect(() => {
+    const savedTasks = localStorage.getItem('tasks');
+    const savedProjects = localStorage.getItem('projects');
+    const savedStatuses = localStorage.getItem('statuses');
+    
+    if (savedTasks) setTasks(JSON.parse(savedTasks));
+    if (savedProjects) setProjects(JSON.parse(savedProjects));
+    if (savedStatuses) setStatuses(JSON.parse(savedStatuses));
+  }, []);
+
+  // Save projects to localStorage whenever they change
+  useEffect(() => {
+    localStorage.setItem('projects', JSON.stringify(projects));
+  }, [projects]);
+
+  // Save statuses to localStorage whenever they change
+  useEffect(() => {
+    localStorage.setItem('statuses', JSON.stringify(statuses));
+  }, [statuses]);
   
   // Handle new task creation
   const handleTaskCreate = (newTask) => {
@@ -243,7 +315,9 @@ function Projects({ user, setUser }) {
   const totalTasks = projectTasks.length;
   const completedTasks = projectTasks.filter(t => t.status === "Completed").length;
   const inProgressTasks = projectTasks.filter(t => t.status === "In Progress").length;
-  const progress = selectedProject?.progress || (totalTasks ? Math.round((completedTasks / totalTasks) * 100) : 0);
+
+  // Calculate progress for display
+  const progress = totalTasks === 0 ? 0 : Math.round((completedTasks / totalTasks) * 100);
 
   // Filtering
   const allTags = Array.from(new Set(projectTasks.flatMap((t) => t.tags || [])));
@@ -384,12 +458,18 @@ function Projects({ user, setUser }) {
                   <div className="project-progress">
                     <div className="progress-label">
                       <span>Progress</span>
-                      <span>{project.progress}%</span>
+                      <span>
+                        {tasks.filter(t => t.projectId === project.id).length > 0 
+                          ? (project.progress || 0) + '%' 
+                          : '0%'}
+                      </span>
                     </div>
                     <div className="progress-bar">
                       <div 
                         className="progress-fill" 
-                        style={{ width: `${project.progress}%` }}
+                        style={{ width: `${tasks.filter(t => t.projectId === project.id).length > 0 
+                          ? (project.progress || 0) 
+                          : 0}%` }}
                       ></div>
                     </div>
                   </div>
