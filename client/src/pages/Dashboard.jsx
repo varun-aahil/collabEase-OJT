@@ -497,7 +497,7 @@ function Dashboard({ user, setUser }) {
           <section className="team-section">
             <div className="section-header-pro">
               <h3>Team Members</h3>
-              <button className="add-team-btn" onClick={() => navigate('/team')}>View All Members</button>
+              <Link to="/team" className="add-team-btn" style={{ textDecoration: 'none' }}>View All Members</Link>
             </div>
             {showSuccess && (
               <div className="team-success-alert">User deleted successfully!</div>
