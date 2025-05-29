@@ -1,7 +1,25 @@
+/* Hide scrollbars but keep scrolling functionality */
+html, body {
+  scrollbar-width: none; /* Firefox */
+  -ms-overflow-style: none; /* IE and Edge */
+}
+
+html::-webkit-scrollbar, 
+body::-webkit-scrollbar, 
+.dashboard::-webkit-scrollbar,
+.sidebar::-webkit-scrollbar,
+.main-content::-webkit-scrollbar,
+.notifications-list::-webkit-scrollbar {
+  display: none; /* Chrome, Safari, Opera */
+  width: 0;
+  height: 0;
+}
+
 body, .dashboard, .main-content {
   background: #f8f9fa !important;
   color: #333 !important;
   font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, 'Open Sans', 'Helvetica Neue', sans-serif;
+  overflow-x: hidden;
 }
 
 .dashboard-stats-pro .stat-card-pro,
@@ -31,6 +49,9 @@ body, .dashboard, .main-content {
   min-height: 100vh;
   background: #f8f9fa;
   transition: background-color 0.3s ease;
+  overflow: visible;
+  scrollbar-width: none; /* Firefox */
+  -ms-overflow-style: none; /* IE and Edge */
 }
 
 .sidebar {
@@ -44,6 +65,12 @@ body, .dashboard, .main-content {
   box-shadow: 2px 0 8px rgba(0, 0, 0, 0.1);
   transition: width 0.3s ease;
   z-index: 100;
+  position: sticky;
+  top: 0;
+  overflow-y: auto;
+  height: 100vh;
+  scrollbar-width: none; /* Firefox */
+  -ms-overflow-style: none; /* IE and Edge */
 }
 
 .sidebar-header {
@@ -130,8 +157,9 @@ body, .dashboard, .main-content {
 .main-content {
   flex: 1;
   padding: 30px 40px;
-  overflow-y: auto;
   background: #f8f9fa;
+  overflow-y: visible;
+  height: auto;
 }
 
 /* Welcome Message */
@@ -762,13 +790,33 @@ a.dropdown-link {
   }
 }
 
-/* Add to existing styles */
-
+/* Main content layout */
 .dashboard-main {
   flex: 1;
+  display: flex;
+  flex-direction: column;
   padding: 30px 40px;
-  overflow-y: auto;
   background: #f8f9fa;
+  overflow-y: visible;
+  height: auto;
+  min-height: 100vh;
+}
+
+/* Ensure the topbar is properly styled in the dashboard */
+.dashboard-main .topbar,
+.dashboard-main .fixed-topbar {
+  margin-bottom: 30px;
+  margin-left: auto;
+  margin-right: auto;
+  background: #fff;
+  border-radius: 12px;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05);
+  position: relative;
+  top: 0;
+  left: 0;
+  right: 40px; /* Add right padding */
+  padding: 0 20px;
+  max-width: 98%;
 }
 
 /* Activity Item Styling */

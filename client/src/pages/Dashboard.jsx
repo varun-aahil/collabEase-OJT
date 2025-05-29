@@ -223,125 +223,19 @@ function Dashboard({ user, setUser }) {
     <div className="dashboard">
       <Sidebar />
       <div className="dashboard-main">
+        <Topbar 
+          user={user}
+          userPhoto={userPhoto}
+          notifications={notifications}
+          onProfile={() => navigate('/profile')}
+          onLogout={handleLogout}
+          onSearch={(e) => console.log("Search:", e.target.value)}
+        />
+
         <div className="welcome-message">
           <div>
             <h2>Welcome back, {user?.displayName || user?.email || "User"}!</h2>
             <p>Here's what's happening in your projects today.</p>
-            <button 
-              onClick={() => navigate('/profile')} 
-              style={{ 
-                padding: '8px 12px', 
-                background: '#fff', 
-                color: '#4e73df', 
-                border: 'none', 
-                borderRadius: '4px', 
-                cursor: 'pointer',
-                marginTop: '10px',
-                fontWeight: '600'
-              }}
-            >
-              Go to Profile Page
-            </button>
-          </div>
-          <div style={{ display: 'flex', gap: '10px', alignItems: 'center' }}>
-            <div style={{ padding: '8px 12px', background: 'rgba(255,255,255,0.2)', color: 'white', borderRadius: '4px', fontSize: '14px' }}>
-              Firebase Auth: {user ? '✓ Connected' : '✗ Not connected'}
-            </div>
-            <LogoutButton setUser={setUser} />
-          </div>
-        </div>
-
-        <div className="topbar">
-          <div className="search-container">
-            <FaSearch className="search-icon" />
-            <input type="text" className="search-input" placeholder="Search projects, tasks, and team..." />
-          </div>
-          <div className="topbar-actions">
-            <div className="notifications-container">
-              <button className="icon-button" onClick={handleNotificationsClick} title="Notifications">
-                <FaBell />
-                {notifications.length > 0 && <span className="notification-badge">{notifications.length}</span>}
-              </button>
-              {showNotifications && (
-                <div className="notifications-dropdown">
-                  <div className="notifications-header">
-                    <h3>Notifications</h3>
-                    <button className="mark-all-read">Mark all as read</button>
-                  </div>
-                  <div className="notifications-list">
-                    {notifications.length > 0 ? (
-                      notifications.map(notification => (
-                        <div className="notification-item" key={notification.id}>
-                          <div className="notification-avatar">
-                            <img src={notification.photo} alt="User" />
-                          </div>
-                          <div className="notification-content">
-                            <p>{notification.message}</p>
-                            <span className="notification-time">{notification.time}</span>
-                          </div>
-                        </div>
-                      ))
-                    ) : (
-                      <div className="empty-notifications">
-                        <p>No new notifications</p>
-                      </div>
-                    )}
-                  </div>
-                  <div className="notifications-footer">
-                    <Link to="/notifications" onClick={() => setShowNotifications(false)}>
-                      View all notifications
-                    </Link>
-                  </div>
-                </div>
-              )}
-            </div>
-            <div className="profile-container">
-              <button className="icon-button profile-btn" onClick={handleProfileClick} title="Profile">
-                {userPhoto ? (
-                  <img src={userPhoto} alt="Profile" className="profile-image" />
-                ) : (
-                  <span className="profile-initial">{user?.displayName?.charAt(0) || user?.email?.charAt(0) || "U"}</span>
-                )}
-              </button>
-              {showProfile && (
-                <div className="profile-dropdown">
-                  <div className="profile-info">
-                    {userPhoto ? (
-                      <img src={userPhoto} alt="Profile" className="profile-image-large" />
-                    ) : (
-                      <div className="profile-initial-large">
-                        {user?.displayName?.charAt(0) || user?.email?.charAt(0) || "U"}
-                      </div>
-                    )}
-                    <h3>{user?.displayName || user?.email || 'User'}</h3>
-                    <p>{user?.email}</p>
-                  </div>
-                  <div className="dropdown-divider"></div>
-                  <Link 
-                    to="/profile" 
-                    className="dropdown-link"
-                    onClick={() => setShowProfile(false)}
-                    style={{ textDecoration: 'none' }}
-                  >
-                    <FaUserCircle />
-                    View Profile
-                  </Link>
-                  <div className="dropdown-divider"></div>
-                  <button 
-                    className="dropdown-link logout-btn" 
-                    onClick={(e) => {
-                      e.preventDefault();
-                      e.stopPropagation();
-                      handleLogout();
-                    }}
-                    type="button"
-                  >
-                    <FaSignOutAlt />
-                    Logout
-                  </button>
-                </div>
-              )}
-            </div>
           </div>
         </div>
 
