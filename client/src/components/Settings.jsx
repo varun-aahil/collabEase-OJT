@@ -1,23 +1,20 @@
-import React, { useState, useEffect } from 'react';
-import { useNavigate } from 'react-router-dom';
+import React, { useState } from 'react';
+import { useNavigate, Link } from 'react-router-dom';
 import { getAuth, signOut } from 'firebase/auth';
 import { 
   FaUser, 
   FaPalette, 
   FaBell, 
-  FaShieldAlt, 
   FaSun,
   FaMoon,
-  FaLock,
-  FaSignOutAlt,
-  FaKey,
-  FaLanguage,
-  FaFont
+  FaFont,
+  FaExternalLinkAlt,
+  FaSignOutAlt
 } from 'react-icons/fa';
 import '../styles/Settings.css';
 import Sidebar from './Sidebar';
 
-const Settings = ({ user, setUser, theme, setTheme }) => {
+const Settings = ({ user, setUser, theme, setTheme, fontSize, setFontSize }) => {
   const navigate = useNavigate();
   const auth = getAuth();
   const [activeSection, setActiveSection] = useState('general');
@@ -48,6 +45,11 @@ const Settings = ({ user, setUser, theme, setTheme }) => {
     setTheme(newTheme);
   };
 
+  const handleFontSizeChange = (e) => {
+    const newFontSize = e.target.value;
+    setFontSize(newFontSize);
+  };
+
   const renderSection = () => {
     switch (activeSection) {
       case 'general':
@@ -57,14 +59,14 @@ const Settings = ({ user, setUser, theme, setTheme }) => {
             <div className="settings-content">
               <div className="setting-item">
                 <label>
-                  <FaUser /> Display Name
+                  <FaUser /> Profile Information
                 </label>
-                <input 
-                  type="text" 
-                  defaultValue={user?.displayName || ''} 
-                  placeholder="Enter your display name"
-                />
-                <small className="setting-hint">This name will be visible to other users</small>
+                <p className="setting-description">
+                  To change your name, update security settings, and manage your profile information, please visit your profile page.
+                </p>
+                <Link to="/profile" className="settings-link-btn">
+                  <FaExternalLinkAlt /> Go to Profile
+                </Link>
               </div>
               <div className="setting-item">
                 <label>
@@ -74,15 +76,10 @@ const Settings = ({ user, setUser, theme, setTheme }) => {
                 <small className="setting-hint">Email cannot be changed</small>
               </div>
               <div className="setting-item">
-                <label>
-                  <FaLanguage /> Language
-                </label>
-                <select>
-                  <option value="en">English</option>
-                  <option value="es">Spanish</option>
-                  <option value="fr">French</option>
-                </select>
-                <small className="setting-hint">Select your preferred language</small>
+                <button className="settings-btn danger" onClick={handleSignOut}>
+                  <FaSignOutAlt /> Sign Out
+                </button>
+                <small className="setting-hint">Sign out from your account</small>
               </div>
             </div>
           </div>
@@ -116,7 +113,7 @@ const Settings = ({ user, setUser, theme, setTheme }) => {
                 <label>
                   <FaFont /> Font Size
                 </label>
-                <select>
+                <select value={fontSize} onChange={handleFontSizeChange}>
                   <option value="small">Small</option>
                   <option value="medium">Medium</option>
                   <option value="large">Large</option>
@@ -167,32 +164,6 @@ const Settings = ({ user, setUser, theme, setTheme }) => {
             </div>
           </div>
         );
-      case 'security':
-        return (
-          <div className="settings-section">
-            <h3>Security</h3>
-            <div className="settings-content">
-              <div className="setting-item">
-                <button className="settings-btn">
-                  <FaKey /> Change Password
-                </button>
-                <small className="setting-hint">Last changed 30 days ago</small>
-              </div>
-              <div className="setting-item">
-                <button className="settings-btn">
-                  <FaLock /> Enable Two-Factor Auth
-                </button>
-                <small className="setting-hint">Add an extra layer of security to your account</small>
-              </div>
-              <div className="setting-item">
-                <button className="settings-btn danger" onClick={handleSignOut}>
-                  <FaSignOutAlt /> Sign Out
-                </button>
-                <small className="setting-hint">Sign out from all devices</small>
-              </div>
-            </div>
-          </div>
-        );
       default:
         return null;
     }
@@ -226,12 +197,6 @@ const Settings = ({ user, setUser, theme, setTheme }) => {
                 onClick={() => setActiveSection('notifications')}
               >
                 <FaBell /> Notifications
-              </button>
-              <button 
-                className={`sidebar-btn ${activeSection === 'security' ? 'active' : ''}`}
-                onClick={() => setActiveSection('security')}
-              >
-                <FaShieldAlt /> Security
               </button>
             </div>
             <div className="settings-main">

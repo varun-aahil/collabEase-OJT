@@ -23,12 +23,29 @@ function App() {
 		// Get theme from localStorage or default to 'light'
 		return localStorage.getItem('theme') || 'light';
 	});
+	const [fontSize, setFontSize] = useState(() => {
+		// Get font size from localStorage or default to 'medium'
+		return localStorage.getItem('fontSizePreference') || 'medium';
+	});
 
 	// Update theme in localStorage and apply to document
 	useEffect(() => {
 		localStorage.setItem('theme', theme);
 		document.documentElement.className = theme === 'dark' ? 'dark-theme' : '';
 	}, [theme]);
+	
+	// Apply font size from localStorage on app initialization and when it changes
+	useEffect(() => {
+		const storedFontSize = fontSize;
+		document.documentElement.setAttribute('data-font-size', storedFontSize);
+		localStorage.setItem('fontSizePreference', storedFontSize);
+		
+		// Force reflow to ensure styles are applied
+		document.body.style.display = 'none';
+		setTimeout(() => {
+			document.body.style.display = '';
+		}, 5);
+	}, [fontSize]);
 
 	// Listen for auth state changes and set user
 	useEffect(() => {
@@ -120,7 +137,7 @@ function App() {
 	}
 
 	return (
-		<div className={`app-container ${theme}-theme`}>
+		<div className={`app-container ${theme}-theme font-size-${fontSize}`}>
 			<Routes>
 				<Route
 					path="/login"
@@ -148,7 +165,7 @@ function App() {
 				/>
 				<Route
 					path="/settings"
-					element={user ? <Settings user={user} setUser={setUser} theme={theme} setTheme={setTheme} /> : <Navigate to="/login" replace />}
+					element={user ? <Settings user={user} setUser={setUser} theme={theme} setTheme={setTheme} fontSize={fontSize} setFontSize={setFontSize} /> : <Navigate to="/login" replace />}
 				/>
 				<Route
 					path="/invite/:token"
