@@ -1,6 +1,80 @@
 @import url('https://fonts.googleapis.com/css2?family=Poppins:ital,wght@0,100;0,200;0,300;0,400;0,500;0,600;0,700;0,800;1,100;1,200;1,300;1,400;1,500;1,600;1,700&display=swap');
 
+/* SUPER AGGRESSIVE FONT SIZE RESET - This should be the first CSS rule */
+* {
+  font-size: 16px !important; /* Default medium size */
+}
+
+html[data-font-size="small"] * {
+  font-size: 14px !important;
+}
+
+html[data-font-size="medium"] * {
+  font-size: 16px !important;
+}
+
+html[data-font-size="large"] * {
+  font-size: 18px !important;
+}
+
+/* Now override for headings and special elements */
+html[data-font-size="small"] h1 { font-size: 28px !important; }
+html[data-font-size="medium"] h1 { font-size: 32px !important; }
+html[data-font-size="large"] h1 { font-size: 36px !important; }
+
+html[data-font-size="small"] h2 { font-size: 24px !important; }
+html[data-font-size="medium"] h2 { font-size: 28px !important; }
+html[data-font-size="large"] h2 { font-size: 32px !important; }
+
+html[data-font-size="small"] h3 { font-size: 20px !important; }
+html[data-font-size="medium"] h3 { font-size: 24px !important; }
+html[data-font-size="large"] h3 { font-size: 28px !important; }
+
+html[data-font-size="small"] h4, 
+html[data-font-size="small"] h5 { font-size: 18px !important; }
+html[data-font-size="medium"] h4, 
+html[data-font-size="medium"] h5 { font-size: 20px !important; }
+html[data-font-size="large"] h4, 
+html[data-font-size="large"] h5 { font-size: 24px !important; }
+
+html[data-font-size="small"] small { font-size: 12px !important; }
+html[data-font-size="medium"] small { font-size: 14px !important; }
+html[data-font-size="large"] small { font-size: 16px !important; }
+
+/* Fix icons */
+html[data-font-size] svg,
+html[data-font-size] .svg-inline--fa,
+html[data-font-size] i[class*="fa-"],
+.font-size-small svg,
+.font-size-medium svg, 
+.font-size-large svg,
+.font-size-small .svg-inline--fa,
+.font-size-medium .svg-inline--fa,
+.font-size-large .svg-inline--fa,
+.font-size-small i[class*="fa-"],
+.font-size-medium i[class*="fa-"],
+.font-size-large i[class*="fa-"] {
+  font-size: inherit !important;
+}
+
+/* Font size variables - keeping these for reference but they're not used in this approach */
+:root {
+  /* Base font sizes */
+  --font-size-small: 0.875rem;   /* 14px */
+  --font-size-medium: 1rem;      /* 16px */
+  --font-size-large: 1.125rem;   /* 18px */
+
+  /* Default (medium) */
+  --font-size-base: var(--font-size-medium);
+  --font-size-h1: 2rem;
+  --font-size-h2: 1.75rem;
+  --font-size-h3: 1.5rem;
+  --font-size-h4: 1.25rem;
+  --font-size-small-text: 0.875rem;
+}
+
 body {
   margin: 0;
   font-family: 'Poppins', sans-serif;
+  font-size: var(--font-size-base);
 }
