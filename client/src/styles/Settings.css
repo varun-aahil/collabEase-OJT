@@ -1,0 +1,423 @@
+.settings-page {
+  padding: 2rem;
+  background: #f8fafc;
+  min-height: calc(100vh - 64px);
+}
+
+.settings-header {
+  margin-bottom: 2.5rem;
+  padding-bottom: 1.5rem;
+  border-bottom: 1px solid #e2e8f0;
+  position: relative;
+}
+
+.settings-header h2 {
+  margin: 0;
+  font-size: 1.875rem;
+  color: #1e293b;
+  font-weight: 600;
+}
+
+.settings-container {
+  display: flex;
+  gap: 2rem;
+  background: #ffffff;
+  border-radius: 1rem;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+  overflow: hidden;
+}
+
+.settings-sidebar {
+  width: 260px;
+  background: #f8fafc;
+  border-right: 1px solid #e2e8f0;
+  padding: 1.5rem 0;
+}
+
+.sidebar-btn {
+  width: 100%;
+  padding: 0.875rem 1.5rem;
+  text-align: left;
+  background: none;
+  border: none;
+  color: #64748b;
+  font-size: 0.9375rem;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  position: relative;
+}
+
+.sidebar-btn:hover {
+  color: #1e293b;
+  background: #f1f5f9;
+}
+
+.sidebar-btn.active {
+  color: #2563eb;
+  font-weight: 500;
+  background: #eff6ff;
+}
+
+.sidebar-btn svg {
+  font-size: 1.125rem;
+  opacity: 0.8;
+}
+
+.settings-main {
+  flex: 1;
+  padding: 2rem;
+  background: #ffffff;
+}
+
+.settings-section {
+  max-width: 800px;
+}
+
+.settings-section h3 {
+  margin: 0 0 1.5rem;
+  color: #1e293b;
+  font-size: 1.25rem;
+  font-weight: 600;
+}
+
+.settings-content {
+  display: flex;
+  flex-direction: column;
+  gap: 1.5rem;
+  min-width: 0;
+}
+
+.setting-item {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+  padding: 1.25rem;
+  background: #f8fafc;
+  border-radius: 0.75rem;
+  border: 1px solid #e2e8f0;
+  transition: all 0.2s ease;
+  min-width: 0;
+}
+
+.setting-item:hover {
+  border-color: #cbd5e1;
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.05);
+}
+
+.setting-item label {
+  color: #475569;
+  font-size: 0.9375rem;
+  font-weight: 500;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  word-break: break-word;
+}
+
+.setting-item input[type="text"],
+.setting-item input[type="email"],
+.setting-item select {
+  padding: 0.75rem 1rem;
+  border: 1px solid #e2e8f0;
+  border-radius: 0.5rem;
+  font-size: 0.9375rem;
+  color: #1e293b;
+  background: #ffffff;
+  transition: all 0.2s ease;
+  width: 100%;
+  box-sizing: border-box;
+}
+
+.setting-item input[type="text"]:focus,
+.setting-item input[type="email"]:focus,
+.setting-item select:focus {
+  outline: none;
+  border-color: #2563eb;
+  box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.1);
+}
+
+.setting-item input[type="email"]:disabled {
+  background: #f1f5f9;
+  cursor: not-allowed;
+  color: #94a3b8;
+}
+
+.theme-options {
+  display: flex;
+  gap: 1rem;
+  flex-wrap: wrap;
+}
+
+.theme-btn {
+  padding: 0.875rem 1.25rem;
+  border: 1px solid #e2e8f0;
+  border-radius: 0.5rem;
+  background: #ffffff;
+  color: #475569;
+  font-size: 0.9375rem;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  min-width: 120px;
+  text-align: center;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+}
+
+.theme-btn:hover {
+  border-color: #cbd5e1;
+  color: #1e293b;
+}
+
+.theme-btn.active {
+  background: #2563eb;
+  border-color: #2563eb;
+  color: #ffffff;
+}
+
+.toggle-label {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  cursor: pointer;
+  padding: 0.5rem 0;
+}
+
+.toggle-label input[type="checkbox"] {
+  width: 1.25rem;
+  height: 1.25rem;
+  cursor: pointer;
+  accent-color: #2563eb;
+}
+
+.toggle-text {
+  color: #475569;
+  font-size: 0.9375rem;
+  font-weight: 500;
+}
+
+.setting-hint {
+  color: #64748b;
+  font-size: 0.8125rem;
+  margin-top: 0.25rem;
+}
+
+.settings-btn {
+  padding: 0.875rem 1.25rem;
+  border: 1px solid #e2e8f0;
+  border-radius: 0.5rem;
+  background: #ffffff;
+  color: #475569;
+  font-size: 0.9375rem;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  width: 100%;
+  text-align: center;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+}
+
+.settings-btn:hover {
+  border-color: #cbd5e1;
+  color: #1e293b;
+}
+
+.settings-btn.danger {
+  color: #dc2626;
+  border-color: #dc2626;
+}
+
+.settings-btn.danger:hover {
+  background: #dc2626;
+  color: #ffffff;
+}
+
+/* Responsive Design */
+@media (max-width: 768px) {
+  .settings-page {
+    padding: 1rem;
+  }
+
+  .settings-container {
+    flex-direction: column;
+  }
+
+  .settings-sidebar {
+    width: 100%;
+    border-right: none;
+    border-bottom: 1px solid #e2e8f0;
+    padding: 1rem;
+  }
+
+  .sidebar-btn {
+    padding: 0.75rem 1rem;
+  }
+
+  .settings-main {
+    padding: 1.5rem;
+  }
+
+  .theme-options {
+    flex-direction: column;
+  }
+
+  .theme-btn {
+    width: 100%;
+  }
+}
+
+/* Dark Theme Styles for Settings Page */
+.dark-theme .settings-page {
+  background: #1e1e1e; /* Dark background for the page */
+}
+
+.dark-theme .settings-header {
+  border-bottom: 1px solid rgba(255, 255, 255, 0.1); /* Light border */
+}
+
+.dark-theme .settings-header h2 {
+  color: #e0e0e0; /* Light heading color */
+}
+
+.dark-theme .settings-container {
+  background: #2c2c2c; /* Darker background for the container */
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.3); /* Darker shadow */
+}
+
+.dark-theme .settings-sidebar {
+  background: #242424; /* Even darker background for sidebar */
+  border-right: 1px solid rgba(255, 255, 255, 0.1); /* Light border */
+}
+
+.dark-theme .sidebar-btn {
+  color: #b0b0b0; /* Lighter grey text */
+}
+
+.dark-theme .sidebar-btn:hover {
+  color: #e0e0e0; /* Light text on hover */
+  background: rgba(255, 255, 255, 0.1); /* Subtle light background on hover */
+}
+
+.dark-theme .sidebar-btn.active {
+  color: #a1c4fd; /* Lighter accent color */
+  background: rgba(161, 196, 253, 0.1); /* Subtle accent background */
+}
+
+.dark-theme .sidebar-btn svg {
+  opacity: 1; /* Ensure icons are visible */
+  color: inherit; /* Inherit color from parent */
+}
+
+.dark-theme .settings-main {
+  background: #2c2c2c; /* Match container background */
+}
+
+.dark-theme .settings-section h3 {
+  color: #e0e0e0; /* Light section heading color */
+}
+
+.dark-theme .setting-item {
+  background: #3a3a3a; /* Darker background for setting items */
+  border: 1px solid rgba(255, 255, 255, 0.1); /* Light border */
+}
+
+.dark-theme .setting-item:hover {
+  border-color: rgba(255, 255, 255, 0.2); /* Lighter border on hover */
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.2); /* Darker shadow on hover */
+}
+
+.dark-theme .setting-item label {
+  color: #e0e0e0; /* Light label color */
+}
+
+.dark-theme .setting-item input[type="text"],
+.dark-theme .setting-item input[type="email"],
+.dark-theme .setting-item select {
+  background: #2c2c2c; /* Dark input background */
+  border: 1px solid rgba(255, 255, 255, 0.1); /* Light border */
+  color: #e0e0e0; /* Light text color */
+}
+
+.dark-theme .setting-item input[type="text"]:focus,
+.dark-theme .setting-item input[type="email"]:focus,
+.dark-theme .setting-item select:focus {
+  border-color: #a1c4fd; /* Lighter accent border */
+  box-shadow: 0 0 0 3px rgba(161, 196, 253, 0.2); /* Subtle light shadow */
+}
+
+.dark-theme .setting-item input[type="email"]:disabled {
+  background: #3a3a3a; /* Darker disabled background */
+  color: #b0b0b0; /* Lighter disabled text */
+}
+
+.dark-theme .theme-btn {
+  background: #3a3a3a; /* Dark theme button background */
+  border: 1px solid rgba(255, 255, 255, 0.1); /* Light border */
+  color: #e0e0e0; /* Light text */
+}
+
+.dark-theme .theme-btn:hover {
+  border-color: rgba(255, 255, 255, 0.2); /* Lighter border on hover */
+  color: #a1c4fd; /* Lighter accent text on hover */
+}
+
+.dark-theme .theme-btn.active {
+  background: #a1c4fd; /* Lighter accent background for active */
+  border-color: #a1c4fd; /* Lighter accent border */
+  color: #1e1e1e; /* Dark text for active */
+}
+
+.dark-theme .toggle-text {
+  color: #e0e0e0; /* Light toggle text */
+}
+
+.dark-theme .setting-hint {
+  color: #b0b0b0; /* Lighter grey hint text */
+}
+
+.dark-theme .settings-btn {
+  background: #3a3a3a; /* Dark settings button background */
+  border: 1px solid rgba(255, 255, 255, 0.1); /* Light border */
+  color: #e0e0e0; /* Light text */
+}
+
+.dark-theme .settings-btn:hover {
+  border-color: rgba(255, 255, 255, 0.2); /* Lighter border on hover */
+  color: #a1c4fd; /* Lighter accent text on hover */
+}
+
+.dark-theme .settings-btn.danger {
+  color: #e74a3b; /* Keep danger color */
+  border-color: #e74a3b; /* Keep danger border */
+}
+
+.dark-theme .settings-btn.danger:hover {
+  background: #e74a3b; /* Keep danger background on hover */
+  color: #1e1e1e; /* Dark text on hover */
+}
+
+.dark-theme .settings-content {
+  min-width: 0;
+}
+
+.dark-theme .setting-item {
+  min-width: 0;
+}
+
+.dark-theme .setting-item label {
+  word-break: break-word;
+}
+
+.dark-theme .setting-item input[type="text"],
+.dark-theme .setting-item input[type="email"],
+.dark-theme .setting-item select {
+  box-sizing: border-box;
+} 
