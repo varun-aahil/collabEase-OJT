@@ -101,4 +101,11 @@ export const getUsers = () => api.get('/users');
 export const getCurrentUser = () => api.get('/users/me');
 export const updateUser = (userData) => api.put('/users', userData);
 
+// Team API
+export const getTeamMembers = () => api.get('/team');
+export const inviteTeamMember = (email) => api.post('/team/invite', { email });
+export const removeTeamMember = (userId) => api.delete(`/team/${userId}`);
+export const updateTeamMemberStatus = (userId, status) => api.patch(`/team/${userId}/status`, { status });
+export const getInvitations = () => api.get('/team/invitations');
+
 export default api; 

@@ -18,6 +18,8 @@
 
 # Firebase
 *-firebase-adminsdk-*.json
+serviceAccountKey.json
+/server/serviceAccountKey.json
 
 # OS generated files
 .DS_Store

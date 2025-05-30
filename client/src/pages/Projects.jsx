@@ -56,12 +56,33 @@ function Projects({ user, setUser }) {
     const fetchUsers = async () => {
       try {
         setLoadingUsers(true);
+        console.log('🚀 Fetching users from API...');
+        console.log('🔑 Auth token in localStorage:', localStorage.getItem('authToken') ? 'Present' : 'Missing');
+        
         const response = await getUsers();
         setUsers(response.data);
-        console.log('Fetched users:', response.data);
+        console.log('✅ Fetched users successfully:', response.data);
+        console.log('👥 Number of users found:', response.data.length);
+        
+        // Log each user for debugging
+        response.data.forEach((user, index) => {
+          console.log(`${index + 1}. ${user.name} (${user.email}) - ID: ${user.id}`);
+        });
+        
       } catch (error) {
-        console.error("Error fetching users:", error);
-        // Fallback to mock data if API fails
+        console.error("❌ Error fetching users:", error);
+        console.error("📊 Error details:", {
+          message: error.message,
+          status: error.response?.status,
+          statusText: error.response?.statusText,
+          data: error.response?.data
+        });
+        
+        // Show specific error message to user
+        setError(`Failed to load team members: ${error.response?.data?.message || error.message}. Your friend might not appear in the list.`);
+        
+        // Still fall back to mock data, but with a more informative message
+        console.log('⚠️ Falling back to mock data - your friend will not appear in this list');
         setUsers([
           { id: 1, name: "Rahul", avatar: "https://ui-avatars.com/api/?name=Rahul" },
           { id: 2, name: "Sanjay", avatar: "https://ui-avatars.com/api/?name=Sanjay" },
@@ -573,9 +594,36 @@ function Projects({ user, setUser }) {
           <div className="projects-overview">
             <div className="projects-header">
               <h1>Projects</h1>
-              <button className="new-project-button" onClick={() => setShowAddProject(true)}>
-                <FaPlus /> New Project
-              </button>
+              <div style={{ display: 'flex', gap: '1rem', alignItems: 'center' }}>
+                <button 
+                  className="debug-users-btn" 
+                  onClick={async () => {
+                    console.log('🔧 Manual debug test for users API...');
+                    try {
+                      const response = await getUsers();
+                      console.log('✅ Manual test successful:', response.data);
+                      alert(`Found ${response.data.length} users! Check console for details.`);
+                    } catch (error) {
+                      console.error('❌ Manual test failed:', error);
+                      alert(`API test failed: ${error.response?.data?.message || error.message}`);
+                    }
+                  }}
+                  style={{ 
+                    padding: '0.5rem 1rem', 
+                    backgroundColor: '#28a745', 
+                    color: 'white', 
+                    border: 'none', 
+                    borderRadius: '4px', 
+                    fontSize: '0.8rem',
+                    cursor: 'pointer'
+                  }}
+                >
+                  🔧 Test Users API
+                </button>
+                <button className="new-project-button" onClick={() => setShowAddProject(true)}>
+                  <FaPlus /> New Project
+                </button>
+              </div>
             </div>
             
             {/* Projects Stats */}
