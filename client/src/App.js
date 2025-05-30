@@ -2,6 +2,7 @@ import { Routes, Route, Navigate } from "react-router-dom";
 import { useEffect, useState } from "react";
 import { onAuthStateChanged, onIdTokenChanged } from "firebase/auth";
 import { auth } from "./firebase";
+import './styles/DarkMode.css';
 
 // Import pages
 import Login from "./pages/Login";
@@ -11,11 +12,22 @@ import Team from "./pages/Team";
 import Projects from "./pages/Projects";
 import Landing from './pages/Landing';
 import Profile from './pages/Profile';
+import Settings from './components/Settings';
 
 function App() {
 	const [user, setUser] = useState(null);
 	const [loading, setLoading] = useState(true);
 	const [error, setError] = useState(null);
+	const [theme, setTheme] = useState(() => {
+		// Get theme from localStorage or default to 'light'
+		return localStorage.getItem('theme') || 'light';
+	});
+
+	// Update theme in localStorage and apply to document
+	useEffect(() => {
+		localStorage.setItem('theme', theme);
+		document.documentElement.className = theme === 'dark' ? 'dark-theme' : '';
+	}, [theme]);
 
 	// Listen for auth state changes and set user
 	useEffect(() => {
@@ -107,36 +119,42 @@ function App() {
 	}
 
 	return (
-		<Routes>
-			<Route
-				path="/login"
-				element={user ? <Navigate to="/dashboard" replace /> : <Login setUser={setUser} />}
-			/>
-			<Route
-				path="/register"
-				element={user ? <Navigate to="/dashboard" replace /> : <Register setUser={setUser} />}
-			/>
-			<Route
-				path="/dashboard"
-				element={user ? <Dashboard user={user} setUser={setUser} /> : <Navigate to="/login" replace />}
-			/>
-			<Route
-				path="/team"
-				element={user ? <Team user={user} setUser={setUser} /> : <Navigate to="/login" replace />}
-			/>
-			<Route
-				path="/projects"
-				element={user ? <Projects user={user} setUser={setUser} /> : <Navigate to="/login" replace />}
-			/>
-			<Route
-				path="/profile"
-				element={user ? <Profile user={user} setUser={setUser} /> : <Navigate to="/login" replace />}
-			/>
-			<Route
-				path="/"
-				element={user ? <Navigate to="/dashboard" replace /> : <Landing />}
-			/>
-		</Routes>
+		<div className={`app-container ${theme}-theme`}>
+			<Routes>
+				<Route
+					path="/login"
+					element={user ? <Navigate to="/dashboard" replace /> : <Login setUser={setUser} />}
+				/>
+				<Route
+					path="/register"
+					element={user ? <Navigate to="/dashboard" replace /> : <Register setUser={setUser} />}
+				/>
+				<Route
+					path="/dashboard"
+					element={user ? <Dashboard user={user} setUser={setUser} /> : <Navigate to="/login" replace />}
+				/>
+				<Route
+					path="/team"
+					element={user ? <Team user={user} setUser={setUser} /> : <Navigate to="/login" replace />}
+				/>
+				<Route
+					path="/projects"
+					element={user ? <Projects user={user} setUser={setUser} /> : <Navigate to="/login" replace />}
+				/>
+				<Route
+					path="/profile"
+					element={user ? <Profile user={user} setUser={setUser} /> : <Navigate to="/login" replace />}
+				/>
+				<Route
+					path="/settings"
+					element={user ? <Settings user={user} setUser={setUser} theme={theme} setTheme={setTheme} /> : <Navigate to="/login" replace />}
+				/>
+				<Route
+					path="/"
+					element={user ? <Navigate to="/dashboard" replace /> : <Landing />}
+				/>
+			</Routes>
+		</div>
 	);
 }
 

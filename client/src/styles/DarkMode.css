@@ -1,0 +1,785 @@
+/* Dark Mode Global Styles */
+.dark-theme {
+  --bg-primary: #1a1a1a;
+  --bg-secondary: #2c2c2c;
+  --bg-tertiary: #3a3a3a;
+  --text-primary: #e0e0e0;
+  --text-secondary: #b0b0b0;
+  --border-color: rgba(255, 255, 255, 0.1);
+  --accent-color: #3498db;
+  --hover-bg: rgba(255, 255, 255, 0.05);
+  --shadow-color: rgba(0, 0, 0, 0.3);
+}
+
+.dark-theme body {
+  background-color: var(--bg-primary) !important;
+  color: var(--text-primary) !important;
+}
+
+/* Sidebar Dark Mode */
+.dark-theme .sidebar {
+  background: var(--bg-secondary);
+  border-right: 1px solid var(--border-color);
+}
+
+.dark-theme .sidebar-header {
+  border-bottom: 1px solid var(--border-color);
+}
+
+.dark-theme .sidebar-header h2 {
+  background: linear-gradient(120deg, #3498db, #2980b9);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+}
+
+.dark-theme .sidebar-section-label {
+  color: var(--text-secondary);
+}
+
+.dark-theme .nav-item {
+  color: var(--text-secondary);
+}
+
+.dark-theme .nav-item:hover {
+  color: var(--accent-color);
+  background: var(--hover-bg);
+}
+
+.dark-theme .nav-item.active {
+  color: var(--accent-color);
+  background: var(--hover-bg);
+}
+
+/* Dashboard Dark Mode */
+.dark-theme .dashboard-main {
+  background: var(--bg-primary);
+}
+
+.dark-theme .welcome-message,
+.dark-theme .dashboard-stats-pro .stat-card-pro,
+.dark-theme .dashboard-sections-pro > section,
+.dark-theme .dashboard-bottom-sections-pro > section,
+.dark-theme .my-tasks-section,
+.dark-theme .recent-activity-section,
+.dark-theme .recent-projects-section,
+.dark-theme .team-section {
+  background: var(--bg-secondary);
+  color: var(--text-primary);
+  border: 1px solid var(--border-color);
+  border-radius: 12px;
+  box-shadow: 0 4px 16px var(--shadow-color);
+  transition: all 0.3s ease;
+}
+
+.dark-theme .dashboard-stats-pro .stat-card-pro:hover,
+.dark-theme .welcome-message:hover,
+.dark-theme .my-tasks-section:hover,
+.dark-theme .recent-activity-section:hover,
+.dark-theme .recent-projects-section:hover,
+.dark-theme .team-section:hover {
+  transform: translateY(-4px);
+  box-shadow: 0 8px 20px var(--shadow-color);
+}
+
+.dark-theme .welcome-message h2 {
+  color: var(--text-primary);
+  background: none;
+  -webkit-background-clip: unset;
+  -webkit-text-fill-color: var(--text-primary);
+}
+
+.dark-theme .welcome-message p {
+  color: var(--text-secondary);
+}
+
+.dark-theme .my-tasks-section h3,
+.dark-theme .recent-activity-section h3,
+.dark-theme .recent-projects-section h3,
+.dark-theme .team-section h3 {
+  color: var(--text-primary);
+}
+
+.dark-theme .stat-card-pro .stat-title {
+  color: var(--text-secondary);
+}
+
+.dark-theme .stat-card-pro .stat-value {
+  color: var(--accent-color);
+  background: none;
+  -webkit-background-clip: unset;
+  -webkit-text-fill-color: unset;
+}
+
+.dark-theme .activity-item {
+  background: var(--bg-tertiary);
+  border-left-color: var(--accent-color);
+  color: var(--text-primary);
+  border: 1px solid var(--border-color);
+  border-radius: 10px;
+  box-shadow: 0 2px 8px var(--shadow-color);
+  transition: all 0.3s ease;
+}
+
+.dark-theme .activity-item:hover {
+  background: var(--hover-bg);
+}
+
+.dark-theme .activity-item h4 {
+  color: var(--text-primary);
+}
+
+.dark-theme .activity-item p {
+  color: var(--text-secondary);
+}
+
+.dark-theme .activity-meta {
+  color: var(--text-secondary);
+}
+
+.dark-theme .activity-icon {
+  background: rgba(52, 152, 219, 0.2);
+  color: var(--accent-color);
+}
+
+.dark-theme .task-item {
+  background: var(--bg-tertiary);
+  border-left-color: var(--accent-color);
+}
+
+.dark-theme .task-item:hover {
+  background: var(--hover-bg);
+}
+
+.dark-theme .task-item h4 {
+  color: var(--text-primary);
+}
+
+.dark-theme .task-item p {
+  color: var(--text-secondary);
+}
+
+.dark-theme .recent-projects-list .project-card {
+  background: var(--bg-tertiary);
+  border: 1px solid var(--border-color);
+}
+
+.dark-theme .recent-projects-list .project-card:hover {
+  background: var(--hover-bg);
+}
+
+.dark-theme .recent-projects-list .project-title {
+  color: var(--text-primary);
+}
+
+.dark-theme .recent-projects-list .project-description {
+  color: var(--text-secondary);
+}
+
+.dark-theme .status-badge {
+  /* Ensure existing badge styles work or override if needed */
+}
+
+.dark-theme .view-all-link {
+  color: var(--accent-color);
+}
+
+.dark-theme .view-all-link:hover {
+  color: #2980b9;
+}
+
+.dark-theme .add-button {
+  background: var(--accent-color);
+  color: white;
+}
+
+.dark-theme .add-button:hover {
+  background: #2980b9;
+}
+
+/* Topbar Dark Mode */
+.dark-theme .topbar,
+.dark-theme .fixed-topbar {
+  background: var(--bg-secondary) !important;
+  box-shadow: 0 2px 8px var(--shadow-color) !important;
+}
+
+.dark-theme .search-input {
+  background: var(--bg-tertiary);
+  border: 1px solid var(--border-color);
+  color: var(--text-primary);
+}
+
+.dark-theme .icon-button {
+  color: var(--text-primary) !important;
+}
+
+.dark-theme .icon-button:hover {
+  background-color: var(--hover-bg) !important;
+}
+
+/* Settings Dark Mode */
+.dark-theme .settings-page {
+  background: var(--bg-primary);
+}
+
+.dark-theme .settings-container {
+  background: var(--bg-secondary);
+  box-shadow: 0 1px 3px var(--shadow-color);
+}
+
+.dark-theme .settings-sidebar {
+  background: var(--bg-tertiary);
+  border-right: 1px solid var(--border-color);
+}
+
+.dark-theme .settings-main {
+  background: var(--bg-secondary);
+}
+
+.dark-theme .setting-item {
+  background: var(--bg-tertiary);
+  border: 1px solid var(--border-color);
+}
+
+.dark-theme .setting-item label {
+  color: var(--text-primary);
+}
+
+.dark-theme .setting-item input[type="text"],
+.dark-theme .setting-item input[type="email"],
+.dark-theme .setting-item select {
+  background: var(--bg-secondary);
+  border: 1px solid var(--border-color);
+  color: var(--text-primary);
+}
+
+/* Notifications Dark Mode */
+.dark-theme .notifications-dropdown {
+  background: var(--bg-secondary) !important;
+  box-shadow: 0 6px 24px var(--shadow-color) !important;
+  border: 1px solid var(--border-color) !important;
+}
+
+.dark-theme .notifications-header {
+  border-bottom: 1px solid var(--border-color) !important;
+}
+
+.dark-theme .notifications-header h3 {
+  color: var(--text-primary) !important;
+}
+
+.dark-theme .notification-item {
+  border-bottom: 1px solid var(--border-color) !important;
+}
+
+.dark-theme .notification-item:hover {
+  background: var(--hover-bg) !important;
+}
+
+.dark-theme .notification-content p {
+  color: var(--text-primary) !important;
+}
+
+.dark-theme .notification-time {
+  color: var(--text-secondary) !important;
+}
+
+.dark-theme .notifications-footer {
+  border-top: 1px solid var(--border-color) !important;
+}
+
+.dark-theme .notifications-footer a {
+  color: var(--accent-color) !important;
+}
+
+.dark-theme .notifications-footer a:hover {
+  color: #2980b9 !important;
+}
+
+.dark-theme .mark-all-read {
+  color: var(--accent-color) !important;
+}
+
+.dark-theme .mark-all-read:hover {
+  text-decoration: underline !important;
+}
+
+.dark-theme .empty-notifications {
+  color: var(--text-secondary) !important;
+}
+
+/* Profile Dark Mode */
+.dark-theme .profile-container {
+  background: var(--bg-primary);
+}
+
+.dark-theme .profile-sidebar {
+  background: var(--bg-secondary);
+  border-right: 1px solid var(--border-color);
+}
+
+.dark-theme .profile-content {
+  background: var(--bg-secondary);
+}
+
+/* Login/Register Dark Mode */
+.dark-theme .form_container {
+  background: var(--bg-secondary);
+}
+
+.dark-theme .left {
+  background: var(--bg-tertiary);
+}
+
+.dark-theme .right {
+  background: var(--bg-secondary);
+}
+
+.dark-theme .heading {
+  color: var(--text-primary);
+}
+
+.dark-theme .input {
+  background: var(--bg-tertiary);
+  border: 1px solid var(--border-color);
+  color: var(--text-primary);
+}
+
+.dark-theme .input:focus {
+  border-color: var(--accent-color);
+}
+
+/* Scrollbar Dark Mode */
+.dark-theme ::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+
+.dark-theme ::-webkit-scrollbar-track {
+  background: var(--bg-tertiary);
+}
+
+.dark-theme ::-webkit-scrollbar-thumb {
+  background: var(--border-color);
+  border-radius: 4px;
+}
+
+.dark-theme ::-webkit-scrollbar-thumb:hover {
+  background: var(--text-secondary);
+}
+
+/* Team Page Dark Mode */
+.dark-theme .main-content {
+  background: var(--bg-primary);
+}
+
+.dark-theme .team-header h2 {
+  color: var(--text-primary);
+}
+
+.dark-theme .team-section {
+  background: var(--bg-secondary);
+  border: 1px solid var(--border-color);
+}
+
+/* Ensure team-grid does not have a conflicting background */
+.dark-theme .team-grid {
+  background: none; /* Remove specific background if present */
+}
+
+/* Keep team-card background as secondary for contrast within the section */
+.dark-theme .team-card {
+  background: var(--bg-tertiary);
+  border: 1px solid var(--border-color);
+  box-shadow: 0 2px 8px var(--shadow-color);
+  transition: all 0.3s ease;
+}
+
+.dark-theme .team-card:hover {
+  background: var(--hover-bg);
+}
+
+.dark-theme .team-card-name {
+  color: var(--text-primary);
+}
+
+.dark-theme .team-card-email {
+  color: var(--text-secondary);
+}
+
+.dark-theme .team-card-avatar {
+  background: var(--accent-color);
+  border: 2px solid var(--bg-tertiary);
+}
+
+.dark-theme .team-card-avatar img {
+  border: 2px solid var(--bg-tertiary);
+}
+
+.dark-theme .team-action-btn {
+  color: var(--text-secondary);
+}
+
+.dark-theme .team-action-btn:hover {
+  background: var(--hover-bg);
+  color: var(--text-primary);
+}
+
+.dark-theme .team-action-btn:last-child:hover {
+  color: #e74a3b;
+}
+
+.dark-theme .add-team-btn {
+  background: var(--accent-color);
+}
+
+.dark-theme .add-team-btn:hover {
+  background: #2980b9;
+}
+
+.dark-theme .team-success-alert {
+  background: rgba(40, 167, 69, 0.2);
+  color: #2ecc71;
+}
+
+/* Projects Page Dark Mode */
+.dark-theme .projects-main {
+  background: var(--bg-primary);
+}
+
+.dark-theme .projects-header h1 {
+  color: var(--text-primary);
+}
+
+.dark-theme .new-project-button {
+  background: var(--accent-color);
+}
+
+.dark-theme .new-project-button:hover {
+  background: #2980b9;
+}
+
+.dark-theme .stat-card {
+  background: var(--bg-secondary);
+  border: 1px solid var(--border-color);
+}
+
+.dark-theme .stat-card:hover {
+  background: var(--bg-tertiary);
+}
+
+.dark-theme .stat-info h3 {
+  color: var(--text-secondary);
+}
+
+.dark-theme .stat-info p {
+  color: var(--text-primary);
+}
+
+.dark-theme .search-container input {
+  background: var(--bg-tertiary) !important;
+  border: 1px solid var(--border-color) !important;
+  color: var(--text-primary) !important;
+}
+
+.dark-theme .search-container input:focus {
+  border-color: var(--accent-color);
+}
+
+.dark-theme .filter-btn {
+  background: var(--bg-tertiary);
+  color: var(--text-secondary);
+}
+
+.dark-theme .filter-btn:hover {
+  background: var(--hover-bg);
+}
+
+.dark-theme .filter-btn.active {
+  background: var(--accent-color);
+  color: white;
+}
+
+.dark-theme .project-card {
+  background: var(--bg-secondary);
+  border: 1px solid var(--border-color);
+}
+
+.dark-theme .project-card:hover {
+  background: var(--bg-tertiary);
+}
+
+.dark-theme .project-header h3 {
+  color: var(--text-primary);
+}
+
+.dark-theme .project-description {
+  color: var(--text-secondary);
+}
+
+.dark-theme .progress-label {
+  color: var(--text-secondary);
+}
+
+.dark-theme .progress-bar {
+  background: var(--bg-tertiary);
+}
+
+.dark-theme .project-due {
+  color: var(--text-secondary);
+}
+
+.dark-theme .days-remaining {
+  color: var(--text-secondary);
+}
+
+.dark-theme .days-remaining.overdue {
+  color: #e74a3b;
+}
+
+.dark-theme .days-remaining.due-soon {
+  color: #f1c40f;
+}
+
+.dark-theme .team-avatar {
+  border: 2px solid var(--bg-secondary);
+}
+
+/* Project Detail Dark Mode */
+.dark-theme .project-detail-header h1 {
+  color: var(--text-primary);
+}
+
+.dark-theme .back-button {
+  color: var(--accent-color);
+}
+
+.dark-theme .project-info {
+  background: var(--bg-secondary);
+  border: 1px solid var(--border-color);
+}
+
+.dark-theme .info-label {
+  color: var(--text-secondary);
+}
+
+.dark-theme .info-value {
+  color: var(--text-primary);
+}
+
+.dark-theme .project-progress-section {
+  background: var(--bg-secondary);
+  border: 1px solid var(--border-color);
+}
+
+.dark-theme .progress-header h3 {
+  color: var(--text-primary);
+}
+
+.dark-theme .progress-percentage {
+  color: var(--accent-color);
+}
+
+.dark-theme .stat-label {
+  color: var(--text-secondary);
+}
+
+.dark-theme .stat-value {
+  color: var(--text-primary);
+}
+
+.dark-theme .project-tabs {
+  border-bottom-color: var(--border-color);
+}
+
+.dark-theme .project-tab {
+  color: var(--text-secondary);
+}
+
+.dark-theme .project-tab:hover {
+  color: var(--accent-color);
+}
+
+.dark-theme .project-tab.active {
+  color: var(--accent-color);
+}
+
+.dark-theme .project-tab.active::after {
+  background-color: var(--accent-color);
+}
+
+.dark-theme .task-filters {
+  background: var(--bg-secondary);
+  border: 1px solid var(--border-color);
+}
+
+.dark-theme .filter-icon {
+  color: var(--text-secondary);
+}
+
+.dark-theme .filter-chip {
+  background: var(--bg-tertiary);
+  color: var(--text-secondary);
+}
+
+.dark-theme .filter-chip:hover {
+  background: var(--hover-bg);
+}
+
+.dark-theme .filter-chip.active {
+  background: var(--accent-color);
+  color: white;
+}
+
+.dark-theme .team-tab-content {
+  background: var(--bg-secondary);
+  border: 1px solid var(--border-color);
+}
+
+.dark-theme .team-tab-content h3 {
+  color: var(--text-primary);
+}
+
+.dark-theme .team-member-card {
+  background: var(--bg-tertiary);
+}
+
+.dark-theme .member-info h4 {
+  color: var(--text-primary);
+}
+
+.dark-theme .member-info p {
+  color: var(--text-secondary);
+}
+
+.dark-theme .task-count .count {
+  color: var(--accent-color);
+}
+
+.dark-theme .task-count .label {
+  color: var(--text-secondary);
+}
+
+.dark-theme .analytics-tab-content {
+  background: var(--bg-secondary);
+  border: 1px solid var(--border-color);
+}
+
+.dark-theme .analytics-tab-content h3 {
+  color: var(--text-primary);
+}
+
+.dark-theme .analytics-message {
+  color: var(--text-secondary);
+}
+
+.dark-theme .analytics-icon {
+  color: var(--bg-tertiary);
+}
+
+/* Modal Dark Mode */
+.dark-theme .modal-content {
+  background: var(--bg-secondary);
+  border: 1px solid var(--border-color);
+}
+
+.dark-theme .modal-content h2 {
+  color: var(--text-primary);
+}
+
+.dark-theme .form-group label {
+  color: var(--text-secondary);
+}
+
+.dark-theme .form-group input,
+.dark-theme .form-group textarea,
+.dark-theme .form-group select {
+  background: var(--bg-tertiary);
+  border: 1px solid var(--border-color);
+  color: var(--text-primary);
+}
+
+.dark-theme .form-group input:focus,
+.dark-theme .form-group textarea:focus,
+.dark-theme .form-group select:focus {
+  border-color: var(--accent-color);
+}
+
+.dark-theme .team-select-item {
+  background: var(--bg-tertiary);
+  border: 1px solid var(--border-color);
+  color: var(--text-secondary);
+}
+
+.dark-theme .team-select-item:hover {
+  background: var(--hover-bg);
+}
+
+.dark-theme .team-select-item.selected {
+  background: rgba(52, 152, 219, 0.2);
+  border-color: var(--accent-color);
+  color: var(--text-primary);
+}
+
+.dark-theme .cancel-btn {
+  background: var(--bg-tertiary);
+  border: 1px solid var(--border-color);
+  color: var(--text-secondary);
+}
+
+.dark-theme .cancel-btn:hover {
+  background: var(--hover-bg);
+}
+
+.dark-theme .submit-btn {
+  background: var(--accent-color);
+}
+
+.dark-theme .submit-btn:hover {
+  background: #2980b9;
+}
+
+/* Specific enhancements for team member cards (in dashboard team section) */
+.dark-theme .team-section .team-card {
+  background: var(--bg-tertiary);
+  border: 1px solid var(--border-color);
+  border-radius: 10px;
+  box-shadow: 0 2px 8px var(--shadow-color);
+  transition: all 0.3s ease;
+}
+
+.dark-theme .team-section .team-card:hover {
+  background: var(--hover-bg);
+}
+
+.dark-theme .team-section .team-card-name {
+  color: var(--text-primary);
+}
+
+.dark-theme .team-section .team-card-email {
+  color: var(--text-secondary);
+}
+
+.dark-theme .team-section .team-card-avatar {
+  background: var(--accent-color);
+  border: 2px solid var(--bg-tertiary);
+}
+
+.dark-theme .team-section .team-action-btn {
+  color: var(--text-secondary);
+}
+
+.dark-theme .team-section .team-action-btn:hover {
+  background: var(--hover-bg);
+  color: var(--text-primary);
+}
+
+.dark-theme .notification-badge {
+  background-color: #e74a3b !important;
+  color: white !important;
+}
+
+.dark-theme .profile-initial {
+  color: var(--text-primary) !important;
+  background-color: var(--accent-color) !important;
+}
