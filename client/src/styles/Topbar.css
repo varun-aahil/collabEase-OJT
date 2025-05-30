@@ -165,9 +165,17 @@
   padding: 16px 20px;
   border-bottom: 1px solid #f1f3f5;
   transition: background 0.2s;
+  position: relative;
 }
 .notification-item:hover {
   background: #f8f9fa;
+}
+.notification-item.unread {
+  background: rgba(78, 115, 223, 0.05);
+  border-left: 3px solid #4e73df;
+}
+.notification-item.read {
+  opacity: 0.7;
 }
 .notification-avatar {
   width: 40px;
@@ -216,6 +224,28 @@
 }
 .profile-container, .profile-btn, .dropdown-toggle {
   display: none;
+}
+.unread-indicator {
+  position: absolute;
+  top: 50%;
+  right: 15px;
+  transform: translateY(-50%);
+  width: 8px;
+  height: 8px;
+  background: #4e73df;
+  border-radius: 50%;
+  animation: pulse 2s infinite;
+}
+@keyframes pulse {
+  0% {
+    box-shadow: 0 0 0 0 rgba(78, 115, 223, 0.7);
+  }
+  70% {
+    box-shadow: 0 0 0 8px rgba(78, 115, 223, 0);
+  }
+  100% {
+    box-shadow: 0 0 0 0 rgba(78, 115, 223, 0);
+  }
 }
 @keyframes fadeIn {
   from { opacity: 0; transform: translateY(-10px); }

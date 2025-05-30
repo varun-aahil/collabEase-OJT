@@ -1,12 +1,18 @@
 import React, { useState } from 'react';
 import '../styles/Topbar.css';
 
-function Topbar({ user, userPhoto, notifications = [], onProfile, onLogout, onSearch }) {
+function Topbar({ user, userPhoto, notifications = [], onProfile, onLogout, onSearch, onMarkAllAsRead }) {
   const [showNotifications, setShowNotifications] = useState(false);
   
   const handleNotificationsClick = (e) => {
     e.stopPropagation();
     setShowNotifications(!showNotifications);
+  };
+  
+  const handleMarkAllAsRead = () => {
+    if (onMarkAllAsRead) {
+      onMarkAllAsRead();
+    }
   };
   
   const handleClickOutside = (event) => {
@@ -20,6 +26,9 @@ function Topbar({ user, userPhoto, notifications = [], onProfile, onLogout, onSe
     return () => document.removeEventListener('click', handleClickOutside);
   }, [showNotifications]);
 
+  // Count unread notifications
+  const unreadCount = notifications.filter(notification => !notification.read).length;
+
   return (
     <header className="topbar fixed-topbar">
       <div className="search-container">
@@ -29,18 +38,18 @@ function Topbar({ user, userPhoto, notifications = [], onProfile, onLogout, onSe
         <div className="notifications-container">
           <button className="icon-button" onClick={handleNotificationsClick} title="Notifications">
             <i className="fas fa-bell"></i>
-            {notifications.length > 0 && <span className="notification-badge">{notifications.length}</span>}
+            {unreadCount > 0 && <span className="notification-badge">{unreadCount}</span>}
           </button>
           {showNotifications && (
             <div className="notifications-dropdown">
               <div className="notifications-header">
                 <h3>Notifications</h3>
-                <button className="mark-all-read">Mark all as read</button>
+                <button className="mark-all-read" onClick={handleMarkAllAsRead}>Mark all as read</button>
               </div>
               <div className="notifications-list">
                 {notifications.length > 0 ? (
                   notifications.map(notification => (
-                    <div key={notification.id} className="notification-item">
+                    <div key={notification.id} className={`notification-item ${notification.read ? 'read' : 'unread'}`}>
                       <div className="notification-avatar">
                         <img src={notification.photo || "https://ui-avatars.com/api/?name=User"} alt="" />
                       </div>
@@ -48,6 +57,7 @@ function Topbar({ user, userPhoto, notifications = [], onProfile, onLogout, onSe
                         <p>{notification.message}</p>
                         <span className="notification-time">{notification.time}</span>
                       </div>
+                      {!notification.read && <div className="unread-indicator"></div>}
                     </div>
                   ))
                 ) : (

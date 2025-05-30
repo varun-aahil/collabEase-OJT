@@ -1,6 +1,6 @@
 import axios from 'axios';
 
-const API_BASE_URL = 'http://localhost:5001/api';
+const API_BASE_URL = 'http://localhost:5002/api';
 
 // Create an axios instance
 const api = axios.create({
@@ -107,5 +107,10 @@ export const inviteTeamMember = (email) => api.post('/team/invite', { email });
 export const removeTeamMember = (userId) => api.delete(`/team/${userId}`);
 export const updateTeamMemberStatus = (userId, status) => api.patch(`/team/${userId}/status`, { status });
 export const getInvitations = () => api.get('/team/invitations');
+
+// Notifications API
+export const getNotifications = () => api.get('/notifications');
+export const markNotificationAsRead = (notificationId) => api.patch(`/notifications/${notificationId}/read`);
+export const markAllNotificationsAsRead = () => api.patch('/notifications/mark-all-read');
 
 export default api; 

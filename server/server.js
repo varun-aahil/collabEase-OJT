@@ -4,10 +4,12 @@ const express = require("express");
 const cors = require("cors");
 const session = require("express-session");
 const { initializeFirebase } = require("./config/firebase");
+const { autoCreateUser } = require("./middleware/autoCreateUser");
 const projectRoutes = require("./routes/projects");
 const taskRoutes = require("./routes/tasks");
 const userRoutes = require("./routes/users");
 const teamRoutes = require("./routes/team");
+const notificationRoutes = require("./routes/notifications");
 
 // Initialize Firestore
 const db = initializeFirebase();
@@ -53,11 +55,15 @@ app.use((req, res, next) => {
 	next();
 });
 
+// Auto-create user documents for new Firebase Auth users
+app.use(autoCreateUser);
+
 // Routes
 app.use("/api/users", userRoutes);
 app.use("/api/projects", projectRoutes);
 app.use("/api/tasks", taskRoutes);
 app.use("/api/team", teamRoutes);
+app.use("/api/notifications", notificationRoutes);
 
 // Test route
 app.get("/", (req, res) => {

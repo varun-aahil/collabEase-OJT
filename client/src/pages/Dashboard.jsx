@@ -5,7 +5,7 @@ import { FaUserEdit, FaTrash, FaCheckCircle, FaClock, FaFolder, FaTasks, FaExcla
 import Sidebar from '../components/Sidebar';
 import Topbar from '../components/Topbar';
 import LogoutButton from '../components/LogoutButton';
-import { getProjects, getMyTasks, getUsers } from '../utils/api';
+import { getProjects, getMyTasks, getUsers, getNotifications, markAllNotificationsAsRead } from '../utils/api';
 
 function Dashboard({ user, setUser }) {
   const navigate = useNavigate();
@@ -19,20 +19,7 @@ function Dashboard({ user, setUser }) {
     completedTasks: 0
   });
   const [showNotifications, setShowNotifications] = useState(false);
-  const [notifications] = useState([
-    {
-      id: 1,
-      message: "New task assigned: Complete project documentation",
-      time: "2 hours ago",
-      photo: "https://ui-avatars.com/api/?name=John+Doe"
-    },
-    {
-      id: 2,
-      message: "Project deadline updated: Marketing Campaign",
-      time: "5 hours ago",
-      photo: "https://ui-avatars.com/api/?name=Jane+Smith"
-    }
-  ]);
+  const [notifications, setNotifications] = useState([]);
   const [showProfile, setShowProfile] = useState(false);
   const [userPhoto, setUserPhoto] = useState(null);
   const [recentActivity] = useState([
@@ -66,21 +53,22 @@ function Dashboard({ user, setUser }) {
   const [error, setError] = useState(null);
 
   useEffect(() => {
-    fetchProjects();
-    fetchTasks();
-    fetchTeamMembers();
-    
-    // Fetch user profile photo
-    const fetchUserPhoto = async () => {
-      try {
-        // For demo purposes, use a placeholder avatar
-        setUserPhoto(user?.photoURL || `https://ui-avatars.com/api/?name=${encodeURIComponent(user?.displayName || user?.email || "User")}&background=5a5ee3&color=fff`);
-      } catch (error) {
-        console.error('Error fetching user photo:', error);
-      }
-    };
+    if (user) {
+      fetchData();
+      fetchNotifications();
+      
+      // Fetch user profile photo
+      const fetchUserPhoto = async () => {
+        try {
+          // For demo purposes, use a placeholder avatar
+          setUserPhoto(user?.photoURL || `https://ui-avatars.com/api/?name=${encodeURIComponent(user?.displayName || user?.email || "User")}&background=5a5ee3&color=fff`);
+        } catch (error) {
+          console.error('Error fetching user photo:', error);
+        }
+      };
 
-    fetchUserPhoto();
+      fetchUserPhoto();
+    }
   }, [user]);
   
   // Calculate task statistics whenever tasks change
@@ -123,6 +111,71 @@ function Dashboard({ user, setUser }) {
       });
     }
   }, [tasks]);
+
+  const fetchData = async () => {
+    try {
+      await Promise.all([
+        fetchProjects(),
+        fetchTasks(),
+        fetchTeamMembers()
+      ]);
+    } catch (error) {
+      console.error("Error fetching dashboard data:", error);
+    }
+  };
+
+  const fetchNotifications = async () => {
+    try {
+      console.log('🔔 Fetching notifications...');
+      const response = await getNotifications();
+      const notificationsData = response.data.map(notification => ({
+        id: notification.id,
+        message: notification.message,
+        time: formatNotificationTime(notification.time),
+        photo: notification.photo,
+        type: notification.type,
+        read: notification.read
+      }));
+      setNotifications(notificationsData);
+      console.log(`✅ Loaded ${notificationsData.length} notifications`);
+    } catch (error) {
+      console.error("❌ Error fetching notifications:", error);
+      // Fallback to empty array
+      setNotifications([]);
+    }
+  };
+
+  const formatNotificationTime = (timestamp) => {
+    if (!timestamp) return 'Just now';
+    
+    const now = new Date();
+    const notificationTime = timestamp.toDate ? timestamp.toDate() : new Date(timestamp);
+    const diffInSeconds = Math.floor((now - notificationTime) / 1000);
+    
+    if (diffInSeconds < 60) {
+      return 'Just now';
+    } else if (diffInSeconds < 3600) {
+      const minutes = Math.floor(diffInSeconds / 60);
+      return `${minutes} minute${minutes > 1 ? 's' : ''} ago`;
+    } else if (diffInSeconds < 86400) {
+      const hours = Math.floor(diffInSeconds / 3600);
+      return `${hours} hour${hours > 1 ? 's' : ''} ago`;
+    } else {
+      const days = Math.floor(diffInSeconds / 86400);
+      return `${days} day${days > 1 ? 's' : ''} ago`;
+    }
+  };
+
+  const handleMarkAllAsRead = async () => {
+    try {
+      await markAllNotificationsAsRead();
+      // Update local state
+      setNotifications(notifications.map(n => ({ ...n, read: true })));
+      console.log('✅ All notifications marked as read');
+    } catch (error) {
+      console.error("❌ Error marking notifications as read:", error);
+    }
+  };
 
   const fetchProjects = async () => {
     try {
@@ -230,6 +283,7 @@ function Dashboard({ user, setUser }) {
           onProfile={() => navigate('/profile')}
           onLogout={handleLogout}
           onSearch={(e) => console.log("Search:", e.target.value)}
+          onMarkAllAsRead={handleMarkAllAsRead}
         />
 
         <div className="welcome-message">

@@ -126,6 +126,44 @@ router.post("/", isAuthenticated, async (req, res) => {
       });
     }
     
+    // Send notifications to team members about project assignment
+    if (project.teamMembers && project.teamMembers.length > 0) {
+      console.log(`📧 Sending project assignment notifications for project: ${project.title}`);
+      
+      try {
+        const notificationsRouter = require('./notifications');
+        const ownerName = ownerData?.displayName || ownerData?.name || 'Project Owner';
+        
+        for (const memberId of project.teamMembers) {
+          // Skip sending notification to the owner (they already know they created it)
+          if (memberId !== req.user.id) {
+            try {
+              await notificationsRouter.createNotification(db, {
+                userId: memberId,
+                message: `${ownerName} assigned you to the project "${project.title}"`,
+                type: 'project_assignment',
+                senderName: ownerName,
+                senderPhoto: ownerData?.photoURL || `https://ui-avatars.com/api/?name=${encodeURIComponent(ownerName)}&background=4e73df&color=ffffff`,
+                metadata: {
+                  projectId: project.id || projectRef.id,
+                  projectTitle: project.title,
+                  action: 'assigned',
+                  assignedBy: req.user.id
+                }
+              });
+              console.log(`✅ Project assignment notification sent to user: ${memberId}`);
+            } catch (notificationError) {
+              console.error(`❌ Failed to send notification to ${memberId}:`, notificationError.message);
+              // Don't fail the project creation if notification fails
+            }
+          }
+        }
+      } catch (error) {
+        console.error('❌ Error sending project assignment notifications:', error.message);
+        // Don't fail the project creation if notifications fail
+      }
+    }
+    
     // Populate project with user data
     const populatedProject = {
       ...project,
@@ -159,6 +197,7 @@ router.put("/:id", isAuthenticated, async (req, res) => {
     }
     
     const project = projectDoc.data();
+    const oldTeamMembers = project.teamMembers || [];
     
     // Check if user is owner or team member
     if (project.owner !== req.user.id && !project.teamMembers?.includes(req.user.id)) {
@@ -176,6 +215,52 @@ router.put("/:id", isAuthenticated, async (req, res) => {
     if (status) updates.status = status;
     
     await db.collection('projects').doc(projectId).update(updates);
+    
+    // Send notifications for newly added team members
+    if (teamMembers && Array.isArray(teamMembers)) {
+      const newMembers = teamMembers.filter(memberId => !oldTeamMembers.includes(memberId));
+      
+      if (newMembers.length > 0) {
+        console.log(`📧 Sending notifications to ${newMembers.length} newly added team members`);
+        
+        try {
+          const notificationsRouter = require('./notifications');
+          
+          // Get updater's info
+          const updaterDoc = await db.collection('users').doc(req.user.id).get();
+          const updaterData = updaterDoc.exists ? updaterDoc.data() : null;
+          const updaterName = updaterData?.displayName || updaterData?.name || 'Team Member';
+          
+          for (const memberId of newMembers) {
+            // Skip sending notification to the person who made the update
+            if (memberId !== req.user.id) {
+              try {
+                await notificationsRouter.createNotification(db, {
+                  userId: memberId,
+                  message: `${updaterName} added you to the project "${project.title}"`,
+                  type: 'project_assignment',
+                  senderName: updaterName,
+                  senderPhoto: updaterData?.photoURL || `https://ui-avatars.com/api/?name=${encodeURIComponent(updaterName)}&background=4e73df&color=ffffff`,
+                  metadata: {
+                    projectId: projectId,
+                    projectTitle: project.title,
+                    action: 'added',
+                    addedBy: req.user.id
+                  }
+                });
+                console.log(`✅ Project assignment notification sent to newly added user: ${memberId}`);
+              } catch (notificationError) {
+                console.error(`❌ Failed to send notification to ${memberId}:`, notificationError.message);
+                // Don't fail the project update if notification fails
+              }
+            }
+          }
+        } catch (error) {
+          console.error('❌ Error sending project assignment notifications:', error.message);
+          // Don't fail the project update if notifications fail
+        }
+      }
+    }
     
     // Get the updated project
     const updatedProjectDoc = await db.collection('projects').doc(projectId).get();

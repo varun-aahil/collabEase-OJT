@@ -2,6 +2,8 @@ const express = require("express");
 const router = express.Router();
 const { isAuthenticated } = require("../middleware/auth");
 const { v4: uuidv4 } = require('uuid');
+const { sendInvitationEmail } = require('../config/email');
+const notificationsRouter = require('./notifications');
 
 // Get all team members (using users collection)
 router.get("/", isAuthenticated, async (req, res) => {
@@ -21,6 +23,13 @@ router.get("/", isAuthenticated, async (req, res) => {
     const teamMembers = [];
     snapshot.forEach(doc => {
       const userData = doc.data();
+      
+      // Skip inactive/deactivated users
+      if (userData.status === 'inactive') {
+        console.log(`Skipping inactive user: ${userData.email}`);
+        return;
+      }
+      
       teamMembers.push({
         id: doc.id,
         name: userData.displayName || userData.name || 'Unknown User',
@@ -36,7 +45,7 @@ router.get("/", isAuthenticated, async (req, res) => {
     // Sort by name
     teamMembers.sort((a, b) => (a.name || '').localeCompare(b.name || ''));
     
-    console.log(`Found ${teamMembers.length} team members`);
+    console.log(`Found ${teamMembers.length} active team members`);
     res.json(teamMembers);
   } catch (error) {
     console.error("Error fetching team members:", error);
@@ -90,14 +99,74 @@ router.post("/invite", isAuthenticated, async (req, res) => {
     
     console.log(`Invitation created for ${email} with token ${inviteToken}`);
     
-    // In a real app, you would send an email here
-    // For now, we'll just return the link
-    res.json({
-      message: "Invitation created successfully",
-      inviteLink: inviteLink,
-      email: email,
-      expiresAt: invitationData.expiresAt
-    });
+    // Check if the invited email belongs to an existing user (to create notification)
+    console.log(`🔍 Searching for existing user with email: ${email}`);
+    const allUsersQuery = await usersRef.where('email', '==', email).get();
+    console.log(`📊 User query returned ${allUsersQuery.size} results`);
+    
+    if (!allUsersQuery.empty) {
+      // User exists - create notification
+      const existingUser = allUsersQuery.docs[0];
+      const userData = existingUser.data();
+      
+      console.log(`👤 Found existing user:`, {
+        id: existingUser.id,
+        email: userData.email,
+        name: userData.displayName || userData.name,
+        status: userData.status
+      });
+      
+      try {
+        console.log(`📧 Creating notification for user ${existingUser.id}...`);
+        await notificationsRouter.createNotification(db, {
+          userId: existingUser.id,
+          message: `${invitationData.invitedByName} invited you to join their team on CollabEase`,
+          type: 'invitation',
+          senderName: invitationData.invitedByName,
+          senderPhoto: req.user.photoURL || `https://ui-avatars.com/api/?name=${encodeURIComponent(invitationData.invitedByName)}`,
+          metadata: {
+            invitationId: inviteId,
+            inviteToken: inviteToken,
+            inviteLink: inviteLink
+          }
+        });
+        console.log(`✅ Notification created successfully for existing user: ${email}`);
+      } catch (notificationError) {
+        console.error('❌ Failed to create notification:', notificationError);
+        console.error('❌ Notification error details:', notificationError.message);
+        console.error('❌ Notification stack:', notificationError.stack);
+        // Don't fail the invitation if notification fails
+      }
+    } else {
+      console.log(`❌ No existing user found with email: ${email}`);
+    }
+    
+    // Send email invitation
+    console.log('📧 Attempting to send email invitation...');
+    const emailResult = await sendInvitationEmail(email, inviteLink, invitationData.invitedByName);
+    
+    if (emailResult.success) {
+      console.log('✅ Email sent successfully');
+      res.json({
+        message: "Invitation sent successfully via email",
+        inviteLink: inviteLink,
+        email: email,
+        expiresAt: invitationData.expiresAt,
+        emailSent: true,
+        messageId: emailResult.messageId
+      });
+    } else {
+      console.log('❌ Email failed, but invitation created');
+      res.json({
+        message: "Invitation created but email failed to send. You can copy the link below.",
+        inviteLink: inviteLink,
+        email: email,
+        expiresAt: invitationData.expiresAt,
+        emailSent: false,
+        emailError: emailResult.error
+      });
+    }
+    
   } catch (error) {
     console.error("Error creating invitation:", error);
     res.status(500).json({ message: "Error creating invitation", error: error.message });

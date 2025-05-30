@@ -41,6 +41,8 @@ function Projects({ user, setUser }) {
     members: []
   });
   const [projectToDelete, setProjectToDelete] = useState(null); // For delete confirmation
+  const [editingProject, setEditingProject] = useState(null); // For editing existing projects
+  const [showEditProject, setShowEditProject] = useState(false); // Control edit modal
   
   // Real-time notifications (Socket.io)
   useEffect(() => {
@@ -504,6 +506,87 @@ function Projects({ user, setUser }) {
     }
   };
 
+  // Handle project editing
+  const handleEditProject = (project) => {
+    // Format date for input field (YYYY-MM-DD)
+    let formattedDue = '';
+    if (project.due) {
+      const date = new Date(project.due);
+      if (!isNaN(date.getTime())) {
+        formattedDue = date.toISOString().split('T')[0];
+      }
+    }
+    
+    setEditingProject({
+      id: project.id,
+      name: project.title || project.name,
+      description: project.description || '',
+      due: formattedDue,
+      status: project.status || 'Planning',
+      members: project.teamMembers?.map(member => typeof member === 'string' ? member : member.id) || []
+    });
+    setShowEditProject(true);
+    setUserSearch(''); // Clear search when opening modal
+  };
+
+  // Handle project update
+  const handleUpdateProject = async () => {
+    if (!editingProject.name || !editingProject.id) return;
+    
+    try {
+      const projectData = {
+        title: editingProject.name,
+        description: editingProject.description,
+        due: editingProject.due,
+        status: editingProject.status,
+        teamMembers: editingProject.members
+      };
+      
+      console.log('🔄 Updating project:', editingProject.id, projectData);
+      
+      // Make API call to update project
+      const response = await fetch(`http://localhost:5001/api/projects/${editingProject.id}`, {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${localStorage.getItem('authToken')}`
+        },
+        body: JSON.stringify(projectData)
+      });
+      
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`);
+      }
+      
+      const updatedProject = await response.json();
+      console.log('✅ Project updated successfully:', updatedProject);
+      
+      // Update projects list
+      setProjects(prevProjects => 
+        prevProjects.map(p => p.id === editingProject.id ? updatedProject : p)
+      );
+      
+      // Update cache
+      setProjectsCache(prevCache => 
+        prevCache ? prevCache.map(p => p.id === editingProject.id ? updatedProject : p) : null
+      );
+      
+      // Close edit modal
+      setShowEditProject(false);
+      setEditingProject(null);
+      
+      // If we're viewing this project, refresh the view
+      if (selectedProjectId === editingProject.id) {
+        // Force a refresh of the project details
+        window.location.reload();
+      }
+      
+    } catch (error) {
+      console.error("❌ Error updating project:", error);
+      setError("Failed to update project. Please try again.");
+    }
+  };
+
   // Filter tasks for selected project
   const projectTasks = selectedProjectId
     ? tasks.filter(t => t.projectId === selectedProjectId || t.project === selectedProjectId)
@@ -688,15 +771,25 @@ function Projects({ user, setUser }) {
             <div className="projects-grid">
               {projects
                 .filter(project => filterStatus === "All" || project.status === filterStatus)
-                .filter(project => !search || project.name.toLowerCase().includes(search.toLowerCase()) || project.description.toLowerCase().includes(search.toLowerCase()))
+                .filter(project => !search || (project.title || project.name || '').toLowerCase().includes(search.toLowerCase()) || (project.description || '').toLowerCase().includes(search.toLowerCase()))
                 .map(project => (
                 <div key={project.id} className="project-card" onClick={() => setSelectedProjectId(project.id)}>
                   <div className="project-header">
-                    <h3>{project.name}</h3>
+                    <h3>{project.title || project.name}</h3>
                     <div className="project-actions">
                       <span className={`project-status ${getStatusClass(project.status)}`}>
                         {project.status}
                       </span>
+                      <button 
+                        className="edit-project-small-btn"
+                        onClick={(e) => {
+                          e.stopPropagation(); // Prevent opening the project
+                          handleEditProject(project);
+                        }}
+                        title="Edit Project"
+                      >
+                        ✏️
+                      </button>
                       <button 
                         className="delete-project-btn"
                         onClick={(e) => {
@@ -747,11 +840,13 @@ function Projects({ user, setUser }) {
                       )}
                     </div>
                     <div className="project-team">
-                      {project.members && project.members.map(memberId => {
-                        const member = users.find(u => u.id === memberId);
+                      {/* Show team members avatars in project grid */}
+                      {(project.teamMembers || project.members || []).map(memberIdOrObj => {
+                        const memberId = typeof memberIdOrObj === 'string' ? memberIdOrObj : memberIdOrObj?.id;
+                        const member = typeof memberIdOrObj === 'object' ? memberIdOrObj : users.find(u => u.id === memberId);
                         return member ? (
-                          <div key={memberId} className="team-avatar" title={member.name}>
-                            <img src={member.avatar} alt={member.name} />
+                          <div key={member.id || memberId} className="team-avatar" title={member.displayName || member.name}>
+                            <img src={member.image || member.avatar} alt={member.displayName || member.name} />
                           </div>
                         ) : null;
                       })}
@@ -923,6 +1018,171 @@ function Projects({ user, setUser }) {
               </div>
             )}
             
+            {/* Edit Project Form */}
+            {showEditProject && editingProject && (
+              <div className="modal-overlay" onClick={() => setShowEditProject(false)}>
+                <div className="modal-content" onClick={e => e.stopPropagation()}>
+                  <h2>Edit Project</h2>
+                  <form className="new-project-form">
+                    <div className="form-group">
+                      <label htmlFor="editProjectName">Project Name</label>
+                      <input 
+                        type="text" 
+                        id="editProjectName" 
+                        value={editingProject.name}
+                        onChange={e => setEditingProject({...editingProject, name: e.target.value})}
+                        placeholder="Enter project name"
+                        required
+                      />
+                    </div>
+                    <div className="form-group">
+                      <label htmlFor="editProjectDescription">Description</label>
+                      <textarea 
+                        id="editProjectDescription"
+                        value={editingProject.description}
+                        onChange={e => setEditingProject({...editingProject, description: e.target.value})}
+                        placeholder="Enter project description"
+                        rows="3"
+                      ></textarea>
+                    </div>
+                    <div className="form-row">
+                      <div className="form-group half">
+                        <label htmlFor="editProjectDue">Due Date</label>
+                        <input 
+                          type="date" 
+                          id="editProjectDue"
+                          value={editingProject.due}
+                          onChange={e => setEditingProject({...editingProject, due: e.target.value})}
+                        />
+                      </div>
+                      <div className="form-group half">
+                        <label htmlFor="editProjectStatus">Status</label>
+                        <select 
+                          id="editProjectStatus"
+                          value={editingProject.status}
+                          onChange={e => setEditingProject({...editingProject, status: e.target.value})}
+                        >
+                          <option value="Planning">Planning</option>
+                          <option value="Active">Active</option>
+                          <option value="On Hold">On Hold</option>
+                          <option value="Completed">Completed</option>
+                        </select>
+                      </div>
+                    </div>
+                    <div className="form-group">
+                      <label>Team Members</label>
+                      <div className="team-member-search">
+                        <div className="search-input-container">
+                          <FaSearch className="search-icon" />
+                          <input
+                            type="text"
+                            placeholder="Search team members..."
+                            value={userSearch}
+                            onChange={(e) => setUserSearch(e.target.value)}
+                            className="team-search-input"
+                          />
+                        </div>
+                      </div>
+                      <div className="team-selection">
+                        {loadingUsers ? (
+                          <div className="loading-users">
+                            <div className="loading-spinner"></div>
+                            <span>Loading team members...</span>
+                          </div>
+                        ) : (
+                          users
+                            .filter(user => 
+                              user.name.toLowerCase().includes(userSearch.toLowerCase()) ||
+                              (user.email && user.email.toLowerCase().includes(userSearch.toLowerCase()))
+                            )
+                            .map(user => (
+                              <div 
+                                key={user.id}
+                                className={`team-select-item ${editingProject.members.includes(user.id) ? 'selected' : ''}`}
+                                onClick={() => {
+                                  const isSelected = editingProject.members.includes(user.id);
+                                  setEditingProject({
+                                    ...editingProject, 
+                                    members: isSelected 
+                                      ? editingProject.members.filter(id => id !== user.id)
+                                      : [...editingProject.members, user.id]
+                                  });
+                                }}
+                                title={user.email}
+                              >
+                                <img src={user.avatar} alt={user.name} />
+                                <div className="user-info">
+                                  <span className="user-name">{user.name}</span>
+                                  {user.role && <span className="user-role">{user.role}</span>}
+                                </div>
+                                {editingProject.members.includes(user.id) && (
+                                  <FaCheckCircle className="selected-icon" />
+                                )}
+                              </div>
+                            ))
+                        )}
+                        {!loadingUsers && users.filter(user => 
+                          user.name.toLowerCase().includes(userSearch.toLowerCase()) ||
+                          (user.email && user.email.toLowerCase().includes(userSearch.toLowerCase()))
+                        ).length === 0 && userSearch && (
+                          <div className="no-users-found">
+                            No team members found matching "{userSearch}"
+                          </div>
+                        )}
+                      </div>
+                      {editingProject.members.length > 0 && (
+                        <div className="selected-members">
+                          <h4>Selected Members ({editingProject.members.length})</h4>
+                          <div className="selected-member-list">
+                            {editingProject.members.map(memberId => {
+                              const member = users.find(u => u.id === memberId);
+                              return member ? (
+                                <div key={memberId} className="selected-member">
+                                  <img src={member.avatar} alt={member.name} />
+                                  <span>{member.name}</span>
+                                  <button
+                                    type="button"
+                                    className="remove-member"
+                                    onClick={() => {
+                                      setEditingProject({
+                                        ...editingProject,
+                                        members: editingProject.members.filter(id => id !== memberId)
+                                      });
+                                    }}
+                                  >
+                                    ×
+                                  </button>
+                                </div>
+                              ) : null;
+                            })}
+                          </div>
+                        </div>
+                      )}
+                    </div>
+                    <div className="form-actions">
+                      <button 
+                        type="button" 
+                        className="cancel-btn"
+                        onClick={() => {
+                          setShowEditProject(false);
+                          setEditingProject(null);
+                        }}
+                      >
+                        Cancel
+                      </button>
+                      <button 
+                        type="button" 
+                        className="submit-btn"
+                        onClick={handleUpdateProject}
+                      >
+                        Update Project
+                      </button>
+                    </div>
+                  </form>
+                </div>
+              </div>
+            )}
+            
             {/* Delete Project Confirmation */}
             {projectToDelete && (
               <div className="modal-overlay" onClick={() => setProjectToDelete(null)}>
@@ -932,7 +1192,7 @@ function Projects({ user, setUser }) {
                     <h2>Delete Project</h2>
                   </div>
                   <div className="delete-message">
-                    <p>Are you sure you want to delete "<strong>{projectToDelete.name}</strong>"?</p>
+                    <p>Are you sure you want to delete "<strong>{projectToDelete.title || projectToDelete.name}</strong>"?</p>
                     <p className="warning-text">
                       This action cannot be undone. All tasks and data associated with this project will be permanently deleted.
                     </p>
@@ -962,10 +1222,19 @@ function Projects({ user, setUser }) {
               <button className="back-button" onClick={() => setSelectedProjectId(null)}>
                 <FaArrowLeft /> Back to Projects
               </button>
-              <h1>{selectedProject?.name}</h1>
-              <span className={`project-status ${getStatusClass(selectedProject?.status)}`}>
-                {selectedProject?.status}
-              </span>
+              <h1>{selectedProject?.title || selectedProject?.name}</h1>
+              <div className="project-header-actions">
+                <span className={`project-status ${getStatusClass(selectedProject?.status)}`}>
+                  {selectedProject?.status}
+                </span>
+                <button 
+                  className="edit-project-btn"
+                  onClick={() => handleEditProject(selectedProject)}
+                  title="Edit Project"
+                >
+                  ✏️ Edit
+                </button>
+              </div>
             </div>
             
             {/* Project Info */}
@@ -988,14 +1257,20 @@ function Projects({ user, setUser }) {
                 <div className="team-info">
                   <span className="info-label">Team:</span>
                   <div className="team-avatars">
-                    {selectedProject?.members?.map(memberId => {
-                      const member = users.find(u => u.id === memberId);
+                    {(selectedProject?.teamMembers || selectedProject?.members || []).map(memberIdOrObj => {
+                      // Handle both cases: member could be an ID string or a user object
+                      const memberId = typeof memberIdOrObj === 'string' ? memberIdOrObj : memberIdOrObj?.id;
+                      const member = typeof memberIdOrObj === 'object' ? memberIdOrObj : users.find(u => u.id === memberId);
+                      
                       return member ? (
-                        <div key={memberId} className="team-avatar" title={member.name}>
-                          <img src={member.avatar} alt={member.name} />
+                        <div key={member.id || memberId} className="team-avatar" title={member.displayName || member.name}>
+                          <img src={member.image || member.avatar} alt={member.displayName || member.name} />
                         </div>
                       ) : null;
                     })}
+                    {(!selectedProject?.teamMembers && !selectedProject?.members) && (
+                      <span style={{ color: '#6c757d', fontStyle: 'italic' }}>No team members assigned</span>
+                    )}
                   </div>
                 </div>
               </div>
@@ -1061,6 +1336,29 @@ function Projects({ user, setUser }) {
                 <>
                   {/* Task Filters */}
                   <div className="task-filters">
+                    {/* Project Team Info */}
+                    <div style={{ 
+                      marginBottom: '1rem', 
+                      padding: '0.75rem', 
+                      backgroundColor: '#f8f9fa', 
+                      borderRadius: '8px', 
+                      border: '1px solid #e9ecef',
+                      fontSize: '0.9rem',
+                      color: '#495057'
+                    }}>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                        <FaUser style={{ color: '#4e73df' }} />
+                        <span>
+                          <strong>Project Team:</strong> {(selectedProject?.teamMembers || selectedProject?.members || []).length} member(s) available for task assignment
+                        </span>
+                      </div>
+                      {(selectedProject?.teamMembers || selectedProject?.members || []).length === 0 && (
+                        <div style={{ marginTop: '0.5rem', fontStyle: 'italic', color: '#6c757d' }}>
+                          No team members assigned to this project. Add team members to assign tasks.
+                        </div>
+                      )}
+                    </div>
+                    
                     <div className="filter-section">
                       <button className={`filter-chip ${filterStatus === 'All' ? 'active' : ''}`} onClick={() => setFilterStatus('All')}>
                         All
@@ -1097,17 +1395,23 @@ function Projects({ user, setUser }) {
                     <div className="filter-section">
                       <FaUser className="filter-icon" />
                       <button className={`filter-chip ${!filterUser ? 'active' : ''}`} onClick={() => setFilterUser(null)}>
-                        All Users
+                        All Assignees
                       </button>
-                      {users.map(user => (
-                        <button 
-                          key={user.id}
-                          className={`filter-chip ${filterUser === user.id ? 'active' : ''}`}
-                          onClick={() => setFilterUser(user.id)}
-                        >
-                          {user.name}
-                        </button>
-                      ))}
+                      {/* Only show project team members in filter */}
+                      {(selectedProject?.teamMembers || selectedProject?.members || []).map(memberIdOrObj => {
+                        const memberId = typeof memberIdOrObj === 'string' ? memberIdOrObj : memberIdOrObj?.id;
+                        const member = typeof memberIdOrObj === 'object' ? memberIdOrObj : users.find(u => u.id === memberId);
+                        
+                        return member ? (
+                          <button 
+                            key={member.id || memberId}
+                            className={`filter-chip ${filterUser === (member.id || memberId) ? 'active' : ''}`}
+                            onClick={() => setFilterUser(member.id || memberId)}
+                          >
+                            {member.displayName || member.name}
+                          </button>
+                        ) : null;
+                      })}
                       <button 
                         className={`filter-chip ${filterUser === 'unassigned' ? 'active' : ''}`}
                         onClick={() => setFilterUser('unassigned')}
@@ -1136,35 +1440,70 @@ function Projects({ user, setUser }) {
                     onTaskUpdate={handleTaskUpdate}
                     onTaskDelete={handleTaskDelete}
                     onStatusCreate={handleStatusCreate}
-                    users={users}
+                    users={(() => {
+                      // Filter users to only include project team members
+                      const projectMembers = (selectedProject?.teamMembers || selectedProject?.members || []);
+                      const filteredUsers = projectMembers.map(memberIdOrObj => {
+                        const memberId = typeof memberIdOrObj === 'string' ? memberIdOrObj : memberIdOrObj?.id;
+                        const member = typeof memberIdOrObj === 'object' ? memberIdOrObj : users.find(u => u.id === memberId);
+                        return member;
+                      }).filter(Boolean); // Remove any null/undefined members
+                      
+                      console.log('🎯 Project Team Members for Task Assignment:');
+                      console.log(`  Project: ${selectedProject?.title || selectedProject?.name}`);
+                      console.log(`  Total Available Users: ${users.length}`);
+                      console.log(`  Project Team Members: ${filteredUsers.length}`);
+                      filteredUsers.forEach((member, index) => {
+                        console.log(`    ${index + 1}. ${member?.displayName || member?.name} (${member?.id})`);
+                      });
+                      
+                      return filteredUsers;
+                    })()}
                   />
                 </>
               ) : activeTab === 'Team' ? (
                 <div className="team-tab-content">
                   <h3>Team Members</h3>
                   <div className="team-members-list">
-                    {selectedProject?.members?.map(memberId => {
-                      const member = users.find(u => u.id === memberId);
+                    {(selectedProject?.teamMembers || selectedProject?.members || []).map(memberIdOrObj => {
+                      // Handle both cases: member could be an ID string or a user object
+                      const memberId = typeof memberIdOrObj === 'string' ? memberIdOrObj : memberIdOrObj?.id;
+                      const member = typeof memberIdOrObj === 'object' ? memberIdOrObj : users.find(u => u.id === memberId);
+                      
                       return member ? (
-                        <div key={memberId} className="team-member-card">
-                          <img className="member-avatar" src={member.avatar} alt={member.name} />
+                        <div key={member.id || memberId} className="team-member-card">
+                          <img className="member-avatar" src={member.image || member.avatar} alt={member.displayName || member.name} />
                           <div className="member-info">
-                            <h4>{member.name}</h4>
+                            <h4>{member.displayName || member.name}</h4>
                             <p>{member.role || 'Team Member'}</p>
                           </div>
                           <div className="member-tasks">
                             <div className="task-count">
-                              <span className="count">{projectTasks.filter(t => (t.assignedTo?.id || t.assignedTo) === memberId).length}</span>
+                              <span className="count">{projectTasks.filter(t => (t.assignedTo?.id || t.assignedTo) === (member.id || memberId)).length}</span>
                               <span className="label">Tasks</span>
                             </div>
                             <div className="task-count">
-                              <span className="count">{projectTasks.filter(t => (t.assignedTo?.id || t.assignedTo) === memberId && t.status === 'Completed').length}</span>
+                              <span className="count">{projectTasks.filter(t => (t.assignedTo?.id || t.assignedTo) === (member.id || memberId) && t.status === 'Completed').length}</span>
                               <span className="label">Completed</span>
                             </div>
                           </div>
                         </div>
                       ) : null;
                     })}
+                    {(!selectedProject?.teamMembers && !selectedProject?.members) && (
+                      <div style={{ textAlign: 'center', padding: '2rem', color: '#6c757d' }}>
+                        <FaUser style={{ fontSize: '3rem', marginBottom: '1rem', opacity: 0.3 }} />
+                        <h4>No Team Members</h4>
+                        <p>This project doesn't have any team members assigned yet.</p>
+                      </div>
+                    )}
+                    {(selectedProject?.teamMembers?.length === 0 && selectedProject?.members?.length === 0) && (
+                      <div style={{ textAlign: 'center', padding: '2rem', color: '#6c757d' }}>
+                        <FaUser style={{ fontSize: '3rem', marginBottom: '1rem', opacity: 0.3 }} />
+                        <h4>No Team Members</h4>
+                        <p>This project doesn't have any team members assigned yet.</p>
+                      </div>
+                    )}
                   </div>
                 </div>
               ) : (

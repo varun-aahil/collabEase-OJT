@@ -39,16 +39,27 @@ function Team({ user }) {
   };
 
   const handleDelete = async (id) => {
+    const member = teamMembers.find(m => m.id === id);
+    const confirmDelete = window.confirm(`Remove ${member?.name || member?.email} from your projects?\n\nThis will:\n• Hide them from your team list\n• Remove them from project assignments\n• They can still use the app, but won't see your projects`);
+    
+    if (!confirmDelete) {
+      return;
+    }
+    
     try {
-      console.log('🗑️ Removing team member:', id);
-      await api.delete(`/team/${id}`);
+      console.log('🗑️ Removing team member:', id, member?.email);
+      const response = await api.delete(`/team/${id}`);
+      console.log('✅ Delete response:', response.data);
+      
+      // Remove from local state
       setTeamMembers(teamMembers.filter(m => m.id !== id));
       setSuccessMessage('Team member removed successfully!');
       setShowSuccess(true);
       setTimeout(() => setShowSuccess(false), 3000);
     } catch (error) {
       console.error("❌ Error removing team member:", error);
-      setInviteError('Failed to remove team member.');
+      console.error("❌ Error details:", error.response?.data);
+      setInviteError(error.response?.data?.message || 'Failed to remove team member.');
       setTimeout(() => setInviteError(''), 3000);
     }
   };
@@ -139,12 +150,17 @@ function Team({ user }) {
         />
         <main className="main-content" style={{paddingTop:'80px'}}>
           <div className="section-header-pro" style={{alignItems:'center', marginBottom: 32}}>
-            <h3 style={{fontSize:'1.5rem'}}>Team Members ({teamMembers.length})</h3>
+            <div>
+              <h3 style={{fontSize:'1.5rem'}}>All Users ({teamMembers.length})</h3>
+              <p style={{color: '#6c757d', fontSize: '0.9rem', margin: '4px 0 0 0'}}>
+                Users automatically appear when they register. Send invitations to notify them about your projects.
+              </p>
+            </div>
             <button className="add-team-btn" onClick={() => {
               setShowInviteModal(true);
               clearMessages();
             }}>
-              <FaUserPlus style={{marginRight:6}}/>Add Team Member
+              <FaUserPlus style={{marginRight:6}}/>Send Invitation
             </button>
           </div>
           
@@ -183,14 +199,14 @@ function Team({ user }) {
                   <div className="team-card-actions">
                     <button 
                       className="team-action-btn" 
-                      title="Delete" 
+                      title="Remove from projects" 
                       onClick={() => handleDelete(member.id)}
                     >
                       <FaTrash />
                     </button>
                     <button 
                       className="team-action-btn" 
-                      title={member.status === 'active' ? 'Deactivate' : 'Activate'} 
+                      title={member.status === 'active' ? 'Deactivate user' : 'Activate user'} 
                       onClick={() => handleToggleStatus(member.id)}
                     >
                       {member.status === 'active' ? <FaTimes /> : <FaCheck />}
@@ -207,8 +223,9 @@ function Team({ user }) {
                   color: '#6c757d'
                 }}>
                   <FaUserPlus style={{ fontSize: '3rem', marginBottom: '1rem' }} />
-                  <h3>No team members yet</h3>
-                  <p>Invite your first team member to get started!</p>
+                  <h3>No users have registered yet</h3>
+                  <p>When people register for your app, they'll automatically appear here.<br/>
+                  You can then send them project invitations.</p>
                 </div>
               )}
             </div>
@@ -218,7 +235,11 @@ function Team({ user }) {
           {showInviteModal && (
             <div className="modal">
               <div className="modal-content">
-                <h2>Invite Team Member</h2>
+                <h2>Send Project Invitation</h2>
+                <p style={{color: '#6c757d', fontSize: '0.9rem', marginBottom: '16px'}}>
+                  Send an invitation to notify someone about your projects. If they haven't registered yet, 
+                  they'll get an email with a registration link.
+                </p>
                 <div style={{marginBottom:12}}>
                   <label>Email Address:</label>
                   <input 

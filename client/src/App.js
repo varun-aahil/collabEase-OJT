@@ -13,6 +13,7 @@ import Projects from "./pages/Projects";
 import Landing from './pages/Landing';
 import Profile from './pages/Profile';
 import Settings from './components/Settings';
+import InvitePage from './pages/InvitePage';
 
 function App() {
 	const [user, setUser] = useState(null);
@@ -148,6 +149,10 @@ function App() {
 				<Route
 					path="/settings"
 					element={user ? <Settings user={user} setUser={setUser} theme={theme} setTheme={setTheme} /> : <Navigate to="/login" replace />}
+				/>
+				<Route
+					path="/invite/:token"
+					element={<InvitePage />}
 				/>
 				<Route
 					path="/"
