@@ -5,15 +5,8 @@ import Sidebar from '../components/Sidebar';
 import KanbanBoard from '../components/KanbanBoard';
 import { FaPlus, FaProjectDiagram, FaTasks, FaCheckCircle, FaFilter, FaSearch, FaChartBar, FaArrowLeft, FaStar, FaTag, FaUser } from 'react-icons/fa';
 import '../styles/Projects.css';
-import { getProjects, getProjectTasks, createProject, createTask, updateTaskStatus, deleteTask } from '../utils/api';
+import { getProjects, getProjectTasks, createProject, createTask, updateTaskStatus, deleteTask, getUsers } from '../utils/api';
 // import { useSelector } from 'react-redux'; // For user info if needed
-
-// Mock users - this should eventually be replaced with real user data from the API
-const users = [
-  { id: 1, name: "Rahul", avatar: "https://ui-avatars.com/api/?name=Rahul" },
-  { id: 2, name: "Sanjay", avatar: "https://ui-avatars.com/api/?name=Sanjay" },
-  { id: 3, name: "Priya", avatar: "https://ui-avatars.com/api/?name=Priya" },
-];
 
 const defaultStatuses = ["To Do", "In Progress", "Completed"];
 
@@ -34,6 +27,9 @@ function Projects({ user, setUser }) {
   const [showAddProject, setShowAddProject] = useState(false);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
+  const [users, setUsers] = useState([]); // Real users from API
+  const [userSearch, setUserSearch] = useState(""); // Search for team members
+  const [loadingUsers, setLoadingUsers] = useState(false);
   const [newProject, setNewProject] = useState({
     name: '',
     description: '',
@@ -49,6 +45,30 @@ function Projects({ user, setUser }) {
       setTimeout(() => setNotifications((prev) => prev.slice(1)), 4000);
     });
     return () => socket.off("task-update");
+  }, []);
+  
+  // Fetch users from the API
+  useEffect(() => {
+    const fetchUsers = async () => {
+      try {
+        setLoadingUsers(true);
+        const response = await getUsers();
+        setUsers(response.data);
+        console.log('Fetched users:', response.data);
+      } catch (error) {
+        console.error("Error fetching users:", error);
+        // Fallback to mock data if API fails
+        setUsers([
+          { id: 1, name: "Rahul", avatar: "https://ui-avatars.com/api/?name=Rahul" },
+          { id: 2, name: "Sanjay", avatar: "https://ui-avatars.com/api/?name=Sanjay" },
+          { id: 3, name: "Priya", avatar: "https://ui-avatars.com/api/?name=Priya" },
+        ]);
+      } finally {
+        setLoadingUsers(false);
+      }
+    };
+    
+    fetchUsers();
   }, []);
   
   // Fetch projects from the API
@@ -472,26 +492,93 @@ function Projects({ user, setUser }) {
                     </div>
                     <div className="form-group">
                       <label>Team Members</label>
-                      <div className="team-selection">
-                        {users.map(user => (
-                          <div 
-                            key={user.id}
-                            className={`team-select-item ${newProject.members.includes(user.id) ? 'selected' : ''}`}
-                            onClick={() => {
-                              const isSelected = newProject.members.includes(user.id);
-                              setNewProject({
-                                ...newProject, 
-                                members: isSelected 
-                                  ? newProject.members.filter(id => id !== user.id)
-                                  : [...newProject.members, user.id]
-                              });
-                            }}
-                          >
-                            <img src={user.avatar} alt={user.name} />
-                            <span>{user.name}</span>
-                          </div>
-                        ))}
+                      <div className="team-member-search">
+                        <div className="search-input-container">
+                          <FaSearch className="search-icon" />
+                          <input
+                            type="text"
+                            placeholder="Search team members..."
+                            value={userSearch}
+                            onChange={(e) => setUserSearch(e.target.value)}
+                            className="team-search-input"
+                          />
+                        </div>
                       </div>
+                      <div className="team-selection">
+                        {loadingUsers ? (
+                          <div className="loading-users">
+                            <div className="loading-spinner"></div>
+                            <span>Loading team members...</span>
+                          </div>
+                        ) : (
+                          users
+                            .filter(user => 
+                              user.name.toLowerCase().includes(userSearch.toLowerCase()) ||
+                              (user.email && user.email.toLowerCase().includes(userSearch.toLowerCase()))
+                            )
+                            .map(user => (
+                              <div 
+                                key={user.id}
+                                className={`team-select-item ${newProject.members.includes(user.id) ? 'selected' : ''}`}
+                                onClick={() => {
+                                  const isSelected = newProject.members.includes(user.id);
+                                  setNewProject({
+                                    ...newProject, 
+                                    members: isSelected 
+                                      ? newProject.members.filter(id => id !== user.id)
+                                      : [...newProject.members, user.id]
+                                  });
+                                }}
+                                title={user.email}
+                              >
+                                <img src={user.avatar} alt={user.name} />
+                                <div className="user-info">
+                                  <span className="user-name">{user.name}</span>
+                                  {user.role && <span className="user-role">{user.role}</span>}
+                                </div>
+                                {newProject.members.includes(user.id) && (
+                                  <FaCheckCircle className="selected-icon" />
+                                )}
+                              </div>
+                            ))
+                        )}
+                        {!loadingUsers && users.filter(user => 
+                          user.name.toLowerCase().includes(userSearch.toLowerCase()) ||
+                          (user.email && user.email.toLowerCase().includes(userSearch.toLowerCase()))
+                        ).length === 0 && userSearch && (
+                          <div className="no-users-found">
+                            No team members found matching "{userSearch}"
+                          </div>
+                        )}
+                      </div>
+                      {newProject.members.length > 0 && (
+                        <div className="selected-members">
+                          <h4>Selected Members ({newProject.members.length})</h4>
+                          <div className="selected-member-list">
+                            {newProject.members.map(memberId => {
+                              const member = users.find(u => u.id === memberId);
+                              return member ? (
+                                <div key={memberId} className="selected-member">
+                                  <img src={member.avatar} alt={member.name} />
+                                  <span>{member.name}</span>
+                                  <button
+                                    type="button"
+                                    className="remove-member"
+                                    onClick={() => {
+                                      setNewProject({
+                                        ...newProject,
+                                        members: newProject.members.filter(id => id !== memberId)
+                                      });
+                                    }}
+                                  >
+                                    ×
+                                  </button>
+                                </div>
+                              ) : null;
+                            })}
+                          </div>
+                        </div>
+                      )}
                     </div>
                     <div className="form-actions">
                       <button 

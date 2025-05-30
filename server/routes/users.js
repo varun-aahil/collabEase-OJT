@@ -1,6 +1,7 @@
 const express = require("express");
 const router = express.Router();
 const { getAuth } = require("firebase-admin/auth");
+const { isAuthenticated } = require("../middleware/auth");
 
 // Middleware to verify Firebase token
 const verifyToken = async (req, res, next) => {
@@ -104,4 +105,116 @@ router.get("/me", verifyToken, async (req, res) => {
   }
 });
 
-module.exports = router; 
+// Get all users (for team member selection)
+router.get("/", isAuthenticated, async (req, res) => {
+  try {
+    console.log("GET /api/users - Fetching all users for team selection");
+    const db = req.db;
+    const usersRef = db.collection('users');
+    
+    // Get all users
+    const snapshot = await usersRef.get();
+    
+    if (snapshot.empty) {
+      console.log('No users found');
+      return res.json([]);
+    }
+    
+    const users = [];
+    snapshot.forEach(doc => {
+      const userData = doc.data();
+      users.push({
+        id: doc.id,
+        name: userData.displayName || userData.name || 'Unknown User',
+        displayName: userData.displayName,
+        email: userData.email,
+        avatar: userData.image || userData.photoURL || `https://ui-avatars.com/api/?name=${encodeURIComponent(userData.displayName || 'User')}&background=4e73df&color=ffffff`,
+        image: userData.image || userData.photoURL,
+        role: userData.role || 'Member'
+      });
+    });
+    
+    // Sort by name
+    users.sort((a, b) => (a.name || '').localeCompare(b.name || ''));
+    
+    console.log(`Found ${users.length} users`);
+    res.json(users);
+  } catch (error) {
+    console.error("Error fetching users:", error);
+    res.status(500).json({ message: "Error fetching users", error: error.message });
+  }
+});
+
+// Get current user profile
+router.get("/profile", isAuthenticated, async (req, res) => {
+  try {
+    console.log("GET /api/users/profile - User authenticated:", req.user.id);
+    const db = req.db;
+    
+    // Get user document
+    const userDoc = await db.collection('users').doc(req.user.id).get();
+    
+    if (!userDoc.exists) {
+      return res.status(404).json({ message: "User not found" });
+    }
+    
+    const userData = userDoc.data();
+    const user = {
+      id: userDoc.id,
+      name: userData.displayName || userData.name || 'Unknown User',
+      displayName: userData.displayName,
+      email: userData.email,
+      avatar: userData.image || userData.photoURL || `https://ui-avatars.com/api/?name=${encodeURIComponent(userData.displayName || 'User')}&background=4e73df&color=ffffff`,
+      image: userData.image || userData.photoURL,
+      role: userData.role || 'Member',
+      createdAt: userData.createdAt,
+      lastLoginAt: userData.lastLoginAt
+    };
+    
+    res.json(user);
+  } catch (error) {
+    console.error("Error fetching user profile:", error);
+    res.status(500).json({ message: "Error fetching user profile", error: error.message });
+  }
+});
+
+// Update user profile
+router.put("/profile", isAuthenticated, async (req, res) => {
+  try {
+    console.log("PUT /api/users/profile - Updating user:", req.user.id);
+    const db = req.db;
+    const { displayName, role } = req.body;
+    
+    const updates = {
+      updatedAt: new Date()
+    };
+    
+    if (displayName !== undefined) updates.displayName = displayName;
+    if (role !== undefined) updates.role = role;
+    
+    await db.collection('users').doc(req.user.id).update(updates);
+    
+    // Get updated user
+    const userDoc = await db.collection('users').doc(req.user.id).get();
+    const userData = userDoc.data();
+    
+    const user = {
+      id: userDoc.id,
+      name: userData.displayName || userData.name || 'Unknown User',
+      displayName: userData.displayName,
+      email: userData.email,
+      avatar: userData.image || userData.photoURL || `https://ui-avatars.com/api/?name=${encodeURIComponent(userData.displayName || 'User')}&background=4e73df&color=ffffff`,
+      image: userData.image || userData.photoURL,
+      role: userData.role || 'Member',
+      createdAt: userData.createdAt,
+      updatedAt: userData.updatedAt
+    };
+    
+    res.json(user);
+  } catch (error) {
+    console.error("Error updating user profile:", error);
+    res.status(500).json({ message: "Error updating user profile", error: error.message });
+  }
+});
+
+module.exports = router;
