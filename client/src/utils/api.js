@@ -1,10 +1,10 @@
 import axios from 'axios';
 
-const API_URL = 'http://localhost:5001';
+const API_BASE_URL = 'http://localhost:5001/api';
 
 // Create an axios instance
 const api = axios.create({
-  baseURL: API_URL,
+  baseURL: API_BASE_URL,
   headers: {
     'Content-Type': 'application/json'
   }
@@ -25,10 +25,10 @@ api.interceptors.request.use(
 );
 
 // Projects API
-export const getProjects = () => api.get('/api/projects');
-export const createProject = (projectData) => api.post('/api/projects', projectData);
-export const updateProject = (projectId, projectData) => api.put(`/api/projects/${projectId}`, projectData);
-export const deleteProject = (projectId) => api.delete(`/api/projects/${projectId}`);
+export const getProjects = () => api.get('/projects');
+export const createProject = (projectData) => api.post('/projects', projectData);
+export const updateProject = (projectId, projectData) => api.put(`/projects/${projectId}`, projectData);
+export const deleteProject = (projectId) => api.delete(`/projects/${projectId}`);
 
 // Utility function to normalize status values
 const normalizeStatus = (status) => {
@@ -58,9 +58,9 @@ const normalizeStatus = (status) => {
 };
 
 // Tasks API
-export const getProjectTasks = (projectId) => api.get(`/api/tasks/project/${projectId}`);
-export const getMyTasks = () => api.get('/api/tasks/my-tasks');
-export const getTaskStats = () => api.get('/api/tasks/stats');
+export const getProjectTasks = (projectId) => api.get(`/tasks/project/${projectId}`);
+export const getMyTasks = () => api.get('/tasks/my-tasks');
+export const getTaskStats = () => api.get('/tasks/stats');
 export const createTask = (taskData) => {
   // Ensure the status is normalized
   const normalizedData = {
@@ -69,7 +69,7 @@ export const createTask = (taskData) => {
   };
   
   console.log('Creating task with normalized data:', normalizedData);
-  return api.post('/api/tasks', normalizedData)
+  return api.post('/tasks', normalizedData)
     .then(response => {
       console.log('Task created successfully:', response.data);
       return response;
@@ -84,7 +84,7 @@ export const updateTaskStatus = (taskId, status) => {
   const normalizedStatus = normalizeStatus(status);
   
   console.log(`Updating task ${taskId} status to: ${normalizedStatus}`);
-  return api.patch(`/api/tasks/${taskId}/status`, { status: normalizedStatus })
+  return api.patch(`/tasks/${taskId}/status`, { status: normalizedStatus })
     .then(response => {
       console.log('Task status updated successfully:', response.data);
       return response;
@@ -94,11 +94,11 @@ export const updateTaskStatus = (taskId, status) => {
       throw error;
     });
 };
-export const deleteTask = (taskId) => api.delete(`/api/tasks/${taskId}`);
+export const deleteTask = (taskId) => api.delete(`/tasks/${taskId}`);
 
 // Users API
-export const getUsers = () => api.get('/api/users');
-export const getCurrentUser = () => api.get('/api/users/me');
-export const updateUser = (userData) => api.put('/api/users', userData);
+export const getUsers = () => api.get('/users');
+export const getCurrentUser = () => api.get('/users/me');
+export const updateUser = (userData) => api.put('/users', userData);
 
 export default api; 

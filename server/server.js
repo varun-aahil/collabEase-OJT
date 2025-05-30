@@ -25,7 +25,7 @@ app.use(express.urlencoded({ extended: true }));
 app.use(
 	cors({
 		origin: "http://localhost:3000",
-		methods: "GET,POST,PUT,DELETE",
+		methods: ["GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"],
 		credentials: true,
 		allowedHeaders: ['Content-Type', 'Authorization']
 	})
@@ -62,25 +62,24 @@ app.get("/", (req, res) => {
 	res.send("Server is running");
 });
 
-const startServer = async () => {
-	try {
-		const port = parseInt(process.env.PORT || '5001', 10);
-		console.log("Attempting to start server on port:", port);
-		
-		// Ensure port is within valid range
-		if (isNaN(port) || port < 0 || port >= 65536) {
-			console.error('Invalid port number:', port);
-			process.exit(1);
+// Start server
+const startServer = () => {
+	const PORT = parseInt(process.env.PORT || 5002, 10); // Parse as integer
+	console.log('Attempting to start server on port:', PORT);
+	
+	app.listen(PORT, () => {
+		console.log(`Server running on port ${PORT}`);
+	}).on('error', (err) => {
+		if (err.code === 'EADDRINUSE') {
+			const nextPort = PORT + 1; // Now this will be proper addition
+			console.error(`Port ${PORT} is already in use. Trying port ${nextPort}...`);
+			app.listen(nextPort, () => {
+				console.log(`Server running on port ${nextPort}`);
+			});
+		} else {
+			console.error('Server error:', err);
 		}
-		
-		app.listen(port, () => {
-			console.log(`Server is running on port ${port}`);
-			console.log("Firestore initialized");
-		});
-	} catch (error) {
-		console.error('Failed to start server:', error);
-		process.exit(1);
-	}
+	});
 };
 
 startServer();

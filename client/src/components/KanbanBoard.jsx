@@ -13,6 +13,8 @@ const KanbanBoard = ({
   users
 }) => {
   const [draggedTask, setDraggedTask] = useState(null);
+  const [dragOverColumn, setDragOverColumn] = useState(null);
+  const [syncingTasks, setSyncingTasks] = useState(new Set()); // Track which tasks are syncing
   const [showAddTask, setShowAddTask] = useState(null);
   const [newTaskData, setNewTaskData] = useState({ title: '', description: '', assignedTo: null, priority: 'Medium', dueDate: '' });
   const [showAddColumn, setShowAddColumn] = useState(false);
@@ -23,43 +25,159 @@ const KanbanBoard = ({
   const dragItem = useRef();
   const dragNode = useRef();
 
+  // Check if drag and drop is supported
+  React.useEffect(() => {
+    const isDragSupported = 'draggable' in document.createElement('div');
+    console.log('🔍 Drag and drop supported:', isDragSupported);
+    
+    // Test dataTransfer support
+    const testEvent = new Event('dragstart');
+    const hasDataTransfer = 'dataTransfer' in testEvent;
+    console.log('🔍 DataTransfer supported:', hasDataTransfer);
+  }, []);
+
   // Handle drag start
   const handleDragStart = (e, taskId, status) => {
+    console.log('🎯 Drag started for task:', taskId, 'status:', status);
+    
+    // Set drag data immediately
+    try {
+      e.dataTransfer.setData('text/plain', String(taskId));
+      e.dataTransfer.effectAllowed = 'move';
+      console.log('✅ DataTransfer set successfully');
+    } catch (error) {
+      console.error('❌ Error setting dataTransfer:', error);
+    }
+    
+    // Store drag info
     dragItem.current = { taskId, status };
     dragNode.current = e.target;
-    dragNode.current.addEventListener('dragend', handleDragEnd);
     
+    // Add drag end listener
+    if (dragNode.current) {
+      dragNode.current.addEventListener('dragend', handleDragEnd);
+    }
+    
+    // Set visual state after a brief delay
     setTimeout(() => {
       setDraggedTask(taskId);
+      console.log('🎨 Visual drag state set for task:', taskId);
     }, 0);
     
-    e.dataTransfer.setData('text/plain', taskId);
-    e.dataTransfer.effectAllowed = 'move';
+    console.log('✅ Drag start setup complete');
   };
   
   // Handle drag end
   const handleDragEnd = () => {
+    console.log('🏁 Drag ended');
     setDraggedTask(null);
-    dragNode.current.removeEventListener('dragend', handleDragEnd);
+    if (dragNode.current) {
+      dragNode.current.removeEventListener('dragend', handleDragEnd);
+    }
     dragItem.current = null;
     dragNode.current = null;
   };
   
   // Handle drag over
-  const handleDragOver = (e) => {
+  const handleDragOver = (e, columnStatus) => {
     e.preventDefault();
     e.dataTransfer.dropEffect = 'move';
+    if (dragOverColumn !== columnStatus) {
+      console.log('🎯 Dragging over column:', columnStatus);
+      setDragOverColumn(columnStatus);
+    }
+  };
+  
+  // Handle drag leave
+  const handleDragLeave = (e, columnStatus) => {
+    // Only clear if we're actually leaving the column
+    if (!e.currentTarget.contains(e.relatedTarget)) {
+      console.log('👋 Left column:', columnStatus);
+      setDragOverColumn(null);
+    }
   };
   
   // Handle drop
   const handleDrop = (e, columnStatus) => {
     e.preventDefault();
+    setDragOverColumn(null); // Clear drag over state
+    console.log('🎪 Drop event triggered on column:', columnStatus);
     
-    const taskId = parseInt(e.dataTransfer.getData('text/plain'));
+    const taskIdString = e.dataTransfer.getData('text/plain');
+    console.log('📝 Retrieved task ID from dataTransfer:', taskIdString);
+    
+    // Skip if this is the test drag
+    if (taskIdString === 'test') {
+      console.log('🧪 Test drag detected, ignoring');
+      return;
+    }
+    
+    // Handle both string and number IDs
+    const taskId = isNaN(taskIdString) ? taskIdString : parseInt(taskIdString);
+    console.log('🔢 Parsed task ID:', taskId, typeof taskId);
+    
+    // Mark task as syncing
+    setSyncingTasks(prev => new Set([...prev, taskId]));
+    
+    if (!dragItem.current) {
+      console.error('❌ No drag item found - this might be a legitimate task drag');
+      // Try to find the task in the current tasks to get its status
+      const task = tasks.find(t => String(t.id) === String(taskId));
+      if (task) {
+        console.log('🔍 Found task in tasks array:', task);
+        const sourceStatus = task.status;
+        console.log('📊 Moving task from', sourceStatus, 'to', columnStatus);
+        
+        if (sourceStatus !== columnStatus) {
+          console.log('🚀 Calling onTaskMove with:', taskId, columnStatus);
+          // Call with callback to clear syncing state
+          onTaskMove(taskId, columnStatus).finally(() => {
+            setSyncingTasks(prev => {
+              const newSet = new Set(prev);
+              newSet.delete(taskId);
+              return newSet;
+            });
+          });
+        } else {
+          console.log('📍 Task dropped in same column, no action needed');
+          setSyncingTasks(prev => {
+            const newSet = new Set(prev);
+            newSet.delete(taskId);
+            return newSet;
+          });
+        }
+      } else {
+        console.error('❌ Could not find task with ID:', taskId);
+        setSyncingTasks(prev => {
+          const newSet = new Set(prev);
+          newSet.delete(taskId);
+          return newSet;
+        });
+      }
+      setDraggedTask(null);
+      return;
+    }
+    
     const sourceStatus = dragItem.current.status;
+    console.log('📊 Moving task from', sourceStatus, 'to', columnStatus);
     
     if (sourceStatus !== columnStatus) {
-      onTaskMove(taskId, columnStatus);
+      console.log('🚀 Calling onTaskMove with:', taskId, columnStatus);
+      // Call with callback to clear syncing state
+      onTaskMove(taskId, columnStatus).finally(() => {
+        setSyncingTasks(prev => {
+          const newSet = new Set(prev);
+          newSet.delete(taskId);
+          return newSet;
+        });
+      });
+    } else {
+      console.log('📍 Task dropped in same column, no action needed');
+      setSyncingTasks(prev => {
+        const newSet = new Set(prev);
+        newSet.delete(taskId);
+        return newSet;
+      });
     }
     
     setDraggedTask(null);
@@ -70,14 +188,20 @@ const KanbanBoard = ({
     if (!newTaskData.title.trim()) return;
     
     const task = {
-      ...newTaskData,
+      title: newTaskData.title.trim(),
+      description: newTaskData.description.trim(),
       status,
-      id: Date.now(), // temporary ID until backend assigns one
-      subtasks: [],
-      attachments: [],
-      history: [{ action: 'created', timestamp: new Date().toISOString() }]
+      assignedTo: newTaskData.assignedTo ? String(newTaskData.assignedTo) : null, // Convert to string
+      priority: newTaskData.priority.toLowerCase(), // Convert to lowercase for backend
+      dueDate: newTaskData.dueDate || null,
+      // Remove these fields as they should be set by the backend
+      // id: Date.now(), 
+      // subtasks: [],
+      // attachments: [],
+      // history: [{ action: 'created', timestamp: new Date().toISOString() }]
     };
     
+    console.log('Creating task with data:', task);
     onTaskCreate(task);
     setNewTaskData({ title: '', description: '', assignedTo: null, priority: 'Medium', dueDate: '' });
     setShowAddTask(null);
@@ -139,9 +263,10 @@ const KanbanBoard = ({
         {statuses.map(status => (
           <div 
             key={status} 
-            className="kanban-column"
-            onDragOver={handleDragOver}
+            className={`kanban-column ${dragOverColumn === status ? 'drag-over' : ''}`}
+            onDragOver={(e) => handleDragOver(e, status)}
             onDrop={(e) => handleDrop(e, status)}
+            onDragLeave={(e) => handleDragLeave(e, status)}
           >
             <div className="kanban-column-header">
               <h3>{status}</h3>
@@ -161,10 +286,35 @@ const KanbanBoard = ({
                 .map(task => (
                   <div 
                     key={task.id}
-                    className={`task-card ${draggedTask === task.id ? 'dragging' : ''}`}
-                    draggable
-                    onDragStart={(e) => handleDragStart(e, task.id, status)}
+                    className={`task-card ${draggedTask === task.id ? 'dragging' : ''} ${task.tempId ? 'creating' : ''} ${syncingTasks.has(task.id) ? 'syncing' : ''}`}
+                    draggable={!task.tempId && editingTask !== task.id}
+                    onDragStart={(e) => {
+                      e.stopPropagation(); // Prevent event bubbling
+                      console.log('🚀 Task card drag start triggered:', task.id, 'tempId:', task.tempId, 'editingTask:', editingTask, 'task editing:', editingTask === task.id);
+                      if (!task.tempId && editingTask !== task.id) {
+                        handleDragStart(e, task.id, status);
+                      } else {
+                        console.log('🚫 Drag prevented - tempId:', task.tempId, 'editing this task:', editingTask === task.id);
+                        e.preventDefault();
+                        return false;
+                      }
+                    }}
+                    onMouseDown={(e) => {
+                      console.log('🖱️ Mouse down on task:', task.id);
+                      // Don't prevent default here to allow drag
+                    }}
+                    style={{ 
+                      cursor: (!task.tempId && editingTask !== task.id) ? 'grab' : 'default',
+                      userSelect: 'none' // Prevent text selection
+                    }}
+                    onMouseEnter={() => console.log('🖱️ Mouse entered task:', task.id, 'draggable:', !task.tempId && editingTask !== task.id)}
                   >
+                    {syncingTasks.has(task.id) && (
+                      <div className="task-syncing-indicator">
+                        <div className="spinner"></div>
+                        <span>Syncing...</span>
+                      </div>
+                    )}
                     {editingTask === task.id ? (
                       <div className="task-edit-form">
                         <input
@@ -182,8 +332,8 @@ const KanbanBoard = ({
                         <div className="task-edit-row">
                           <label>Assigned to:</label>
                           <select 
-                            value={task.assignedTo || ''}
-                            onChange={(e) => onTaskUpdate({ ...task, assignedTo: e.target.value ? parseInt(e.target.value) : null })}
+                            value={task.assignedTo?.id || task.assignedTo || ''}
+                            onChange={(e) => onTaskUpdate({ ...task, assignedTo: e.target.value || null })}
                           >
                             <option value="">Unassigned</option>
                             {users.map(user => (
@@ -265,8 +415,23 @@ const KanbanBoard = ({
                           {task.assignedTo ? (
                             <div className="task-assignee">
                               <img 
-                                src={users.find(u => u.id === task.assignedTo)?.avatar || `https://ui-avatars.com/api/?name=${encodeURIComponent(users.find(u => u.id === task.assignedTo)?.name || 'User')}`} 
-                                alt={users.find(u => u.id === task.assignedTo)?.name} 
+                                src={
+                                  task.assignedTo.image || 
+                                  task.assignedTo.avatar || 
+                                  users.find(u => u.id === (task.assignedTo?.id || task.assignedTo))?.avatar || 
+                                  `https://ui-avatars.com/api/?name=${encodeURIComponent(
+                                    task.assignedTo.displayName || 
+                                    task.assignedTo.name || 
+                                    users.find(u => u.id === (task.assignedTo?.id || task.assignedTo))?.name || 
+                                    'User'
+                                  )}`
+                                } 
+                                alt={
+                                  task.assignedTo.displayName || 
+                                  task.assignedTo.name || 
+                                  users.find(u => u.id === (task.assignedTo?.id || task.assignedTo))?.name || 
+                                  'User'
+                                } 
                               />
                             </div>
                           ) : (
@@ -310,7 +475,7 @@ const KanbanBoard = ({
                     <label>Assigned to:</label>
                     <select 
                       value={newTaskData.assignedTo || ''}
-                      onChange={(e) => setNewTaskData({...newTaskData, assignedTo: e.target.value ? parseInt(e.target.value) : null})}
+                      onChange={(e) => setNewTaskData({...newTaskData, assignedTo: e.target.value || null})}
                     >
                       <option value="">Unassigned</option>
                       {users.map(user => (

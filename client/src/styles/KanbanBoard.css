@@ -21,6 +21,7 @@
   display: flex;
   flex-direction: column;
   max-height: 100%;
+  transition: background-color 0.2s ease;
 }
 
 .kanban-column-header {
@@ -73,6 +74,8 @@
   display: flex;
   flex-direction: column;
   gap: 1rem;
+  pointer-events: auto;
+  touch-action: none;
 }
 
 .task-card {
@@ -84,17 +87,80 @@
   user-select: none;
   position: relative;
   border-left: 3px solid transparent;
-  transition: all 0.2s;
+  transition: transform 0.2s ease, box-shadow 0.2s ease;
+  pointer-events: auto;
+  touch-action: none;
 }
 
 .task-card:hover {
-  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
   transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+}
+
+.task-card[draggable="true"] {
+  cursor: grab;
+  user-select: none;
+  -webkit-user-drag: element;
+}
+
+.task-card[draggable="true"]:active {
+  cursor: grabbing;
+}
+
+.task-card[draggable="true"] * {
+  pointer-events: none;
+}
+
+.task-card:not(.dragging) .task-menu-button,
+.task-card:not(.dragging) input,
+.task-card:not(.dragging) textarea,
+.task-card:not(.dragging) select,
+.task-card:not(.dragging) button {
+  pointer-events: auto;
 }
 
 .task-card.dragging {
   opacity: 0.5;
-  box-shadow: 0 8px 16px rgba(0, 0, 0, 0.1);
+  transform: rotate(5deg) scale(1.05);
+  z-index: 1000;
+  cursor: grabbing !important;
+  pointer-events: none;
+}
+
+/* Task syncing state */
+.task-card.syncing {
+  border-left: 3px solid #28a745;
+  background-color: rgba(40, 167, 69, 0.05);
+}
+
+.task-syncing-indicator {
+  position: absolute;
+  top: 5px;
+  right: 5px;
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  background-color: rgba(40, 167, 69, 0.9);
+  color: white;
+  padding: 2px 6px;
+  border-radius: 10px;
+  font-size: 10px;
+  font-weight: 600;
+  z-index: 10;
+}
+
+.task-syncing-indicator .spinner {
+  width: 8px;
+  height: 8px;
+  border: 1px solid rgba(255, 255, 255, 0.3);
+  border-top: 1px solid white;
+  border-radius: 50%;
+  animation: task-sync-spin 0.8s linear infinite;
+}
+
+@keyframes task-sync-spin {
+  0% { transform: rotate(0deg); }
+  100% { transform: rotate(360deg); }
 }
 
 .task-header {
@@ -443,6 +509,50 @@
 .add-column-actions {
   display: flex;
   justify-content: space-between;
+}
+
+.kanban-column.drag-over {
+  background-color: rgba(78, 115, 223, 0.1);
+  border: 2px dashed #4e73df;
+  transition: all 0.2s ease;
+}
+
+/* Prevent text selection during drag */
+.kanban-board * {
+  -webkit-user-select: none;
+  -moz-user-select: none;
+  -ms-user-select: none;
+  user-select: none;
+}
+
+/* Allow text selection in inputs and textareas */
+.kanban-board input,
+.kanban-board textarea {
+  -webkit-user-select: text;
+  -moz-user-select: text;
+  -ms-user-select: text;
+  user-select: text;
+}
+
+/* Debug styles */
+.task-card[draggable="true"]::before {
+  content: "🎯";
+  position: absolute;
+  top: 2px;
+  right: 2px;
+  font-size: 10px;
+  opacity: 0.3;
+  pointer-events: none;
+}
+
+.task-card[draggable="false"]::before {
+  content: "🚫";
+  position: absolute;
+  top: 2px;
+  right: 2px;
+  font-size: 10px;
+  opacity: 0.3;
+  pointer-events: none;
 }
 
 @media (max-width: 768px) {
