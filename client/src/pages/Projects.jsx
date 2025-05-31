@@ -144,7 +144,7 @@ function Projects({ user, setUser }) {
     };
     
     fetchProjects();
-  }, []);
+  }, [user]);
   
   // Fetch tasks for the selected project with caching
   useEffect(() => {
@@ -501,7 +501,12 @@ function Projects({ user, setUser }) {
         setProjectsCache(prevCache => prevCache ? [...prevCache, originalProject] : null);
       }
       
-      setError(`Failed to delete project: ${error.message}`);
+      // Check for specific error status codes and provide better user messages
+      if (error.response && error.response.status === 403) {
+        setError("Permission denied: Only the project owner can delete a project.");
+      } else {
+        setError(`Failed to delete project: ${error.message}`);
+      }
       setProjectToDelete(null);
     }
   };
@@ -780,26 +785,6 @@ function Projects({ user, setUser }) {
                       <span className={`project-status ${getStatusClass(project.status)}`}>
                         {project.status}
                       </span>
-                      <button 
-                        className="edit-project-small-btn"
-                        onClick={(e) => {
-                          e.stopPropagation(); // Prevent opening the project
-                          handleEditProject(project);
-                        }}
-                        title="Edit Project"
-                      >
-                        ✏️
-                      </button>
-                      <button 
-                        className="delete-project-btn"
-                        onClick={(e) => {
-                          e.stopPropagation(); // Prevent opening the project
-                          setProjectToDelete(project);
-                        }}
-                        title="Delete Project"
-                      >
-                        🗑️
-                      </button>
                     </div>
                   </div>
                   <p className="project-description">{project.description}</p>
@@ -851,6 +836,20 @@ function Projects({ user, setUser }) {
                         ) : null;
                       })}
                     </div>
+                  </div>
+                  <div className="project-footer">
+                    {/* Check if user is owner - handle both string ID and object formats */}
+                    {(typeof project.owner === 'object' ? project.owner?.id : project.owner) === user?.id && (
+                      <button 
+                        className="delete-project-button"
+                        onClick={(e) => {
+                          e.stopPropagation(); // Prevent opening the project
+                          setProjectToDelete(project);
+                        }}
+                      >
+                        Delete Project
+                      </button>
+                    )}
                   </div>
                 </div>
               ))}
@@ -1018,171 +1017,6 @@ function Projects({ user, setUser }) {
               </div>
             )}
             
-            {/* Edit Project Form */}
-            {showEditProject && editingProject && (
-              <div className="modal-overlay" onClick={() => setShowEditProject(false)}>
-                <div className="modal-content" onClick={e => e.stopPropagation()}>
-                  <h2>Edit Project</h2>
-                  <form className="new-project-form">
-                    <div className="form-group">
-                      <label htmlFor="editProjectName">Project Name</label>
-                      <input 
-                        type="text" 
-                        id="editProjectName" 
-                        value={editingProject.name}
-                        onChange={e => setEditingProject({...editingProject, name: e.target.value})}
-                        placeholder="Enter project name"
-                        required
-                      />
-                    </div>
-                    <div className="form-group">
-                      <label htmlFor="editProjectDescription">Description</label>
-                      <textarea 
-                        id="editProjectDescription"
-                        value={editingProject.description}
-                        onChange={e => setEditingProject({...editingProject, description: e.target.value})}
-                        placeholder="Enter project description"
-                        rows="3"
-                      ></textarea>
-                    </div>
-                    <div className="form-row">
-                      <div className="form-group half">
-                        <label htmlFor="editProjectDue">Due Date</label>
-                        <input 
-                          type="date" 
-                          id="editProjectDue"
-                          value={editingProject.due}
-                          onChange={e => setEditingProject({...editingProject, due: e.target.value})}
-                        />
-                      </div>
-                      <div className="form-group half">
-                        <label htmlFor="editProjectStatus">Status</label>
-                        <select 
-                          id="editProjectStatus"
-                          value={editingProject.status}
-                          onChange={e => setEditingProject({...editingProject, status: e.target.value})}
-                        >
-                          <option value="Planning">Planning</option>
-                          <option value="Active">Active</option>
-                          <option value="On Hold">On Hold</option>
-                          <option value="Completed">Completed</option>
-                        </select>
-                      </div>
-                    </div>
-                    <div className="form-group">
-                      <label>Team Members</label>
-                      <div className="team-member-search">
-                        <div className="search-input-container">
-                          <FaSearch className="search-icon" />
-                          <input
-                            type="text"
-                            placeholder="Search team members..."
-                            value={userSearch}
-                            onChange={(e) => setUserSearch(e.target.value)}
-                            className="team-search-input"
-                          />
-                        </div>
-                      </div>
-                      <div className="team-selection">
-                        {loadingUsers ? (
-                          <div className="loading-users">
-                            <div className="loading-spinner"></div>
-                            <span>Loading team members...</span>
-                          </div>
-                        ) : (
-                          users
-                            .filter(user => 
-                              user.name.toLowerCase().includes(userSearch.toLowerCase()) ||
-                              (user.email && user.email.toLowerCase().includes(userSearch.toLowerCase()))
-                            )
-                            .map(user => (
-                              <div 
-                                key={user.id}
-                                className={`team-select-item ${editingProject.members.includes(user.id) ? 'selected' : ''}`}
-                                onClick={() => {
-                                  const isSelected = editingProject.members.includes(user.id);
-                                  setEditingProject({
-                                    ...editingProject, 
-                                    members: isSelected 
-                                      ? editingProject.members.filter(id => id !== user.id)
-                                      : [...editingProject.members, user.id]
-                                  });
-                                }}
-                                title={user.email}
-                              >
-                                <img src={user.avatar} alt={user.name} />
-                                <div className="user-info">
-                                  <span className="user-name">{user.name}</span>
-                                  {user.role && <span className="user-role">{user.role}</span>}
-                                </div>
-                                {editingProject.members.includes(user.id) && (
-                                  <FaCheckCircle className="selected-icon" />
-                                )}
-                              </div>
-                            ))
-                        )}
-                        {!loadingUsers && users.filter(user => 
-                          user.name.toLowerCase().includes(userSearch.toLowerCase()) ||
-                          (user.email && user.email.toLowerCase().includes(userSearch.toLowerCase()))
-                        ).length === 0 && userSearch && (
-                          <div className="no-users-found">
-                            No team members found matching "{userSearch}"
-                          </div>
-                        )}
-                      </div>
-                      {editingProject.members.length > 0 && (
-                        <div className="selected-members">
-                          <h4>Selected Members ({editingProject.members.length})</h4>
-                          <div className="selected-member-list">
-                            {editingProject.members.map(memberId => {
-                              const member = users.find(u => u.id === memberId);
-                              return member ? (
-                                <div key={memberId} className="selected-member">
-                                  <img src={member.avatar} alt={member.name} />
-                                  <span>{member.name}</span>
-                                  <button
-                                    type="button"
-                                    className="remove-member"
-                                    onClick={() => {
-                                      setEditingProject({
-                                        ...editingProject,
-                                        members: editingProject.members.filter(id => id !== memberId)
-                                      });
-                                    }}
-                                  >
-                                    ×
-                                  </button>
-                                </div>
-                              ) : null;
-                            })}
-                          </div>
-                        </div>
-                      )}
-                    </div>
-                    <div className="form-actions">
-                      <button 
-                        type="button" 
-                        className="cancel-btn"
-                        onClick={() => {
-                          setShowEditProject(false);
-                          setEditingProject(null);
-                        }}
-                      >
-                        Cancel
-                      </button>
-                      <button 
-                        type="button" 
-                        className="submit-btn"
-                        onClick={handleUpdateProject}
-                      >
-                        Update Project
-                      </button>
-                    </div>
-                  </form>
-                </div>
-              </div>
-            )}
-            
             {/* Delete Project Confirmation */}
             {projectToDelete && (
               <div className="modal-overlay" onClick={() => setProjectToDelete(null)}>
@@ -1232,7 +1066,7 @@ function Projects({ user, setUser }) {
                   onClick={() => handleEditProject(selectedProject)}
                   title="Edit Project"
                 >
-                  ✏️ Edit
+                  Edit
                 </button>
               </div>
             </div>
@@ -1515,6 +1349,171 @@ function Projects({ user, setUser }) {
                   </div>
                 </div>
               )}
+            </div>
+          </div>
+        )}
+        
+        {/* Edit Project Form - Moved outside of the conditional rendering */}
+        {showEditProject && editingProject && (
+          <div className="modal-overlay" onClick={() => setShowEditProject(false)}>
+            <div className="modal-content" onClick={e => e.stopPropagation()}>
+              <h2>Edit Project</h2>
+              <form className="new-project-form">
+                <div className="form-group">
+                  <label htmlFor="editProjectName">Project Name</label>
+                  <input 
+                    type="text" 
+                    id="editProjectName" 
+                    value={editingProject.name}
+                    onChange={e => setEditingProject({...editingProject, name: e.target.value})}
+                    placeholder="Enter project name"
+                    required
+                  />
+                </div>
+                <div className="form-group">
+                  <label htmlFor="editProjectDescription">Description</label>
+                  <textarea 
+                    id="editProjectDescription"
+                    value={editingProject.description}
+                    onChange={e => setEditingProject({...editingProject, description: e.target.value})}
+                    placeholder="Enter project description"
+                    rows="3"
+                  ></textarea>
+                </div>
+                <div className="form-row">
+                  <div className="form-group half">
+                    <label htmlFor="editProjectDue">Due Date</label>
+                    <input 
+                      type="date" 
+                      id="editProjectDue"
+                      value={editingProject.due}
+                      onChange={e => setEditingProject({...editingProject, due: e.target.value})}
+                    />
+                  </div>
+                  <div className="form-group half">
+                    <label htmlFor="editProjectStatus">Status</label>
+                    <select 
+                      id="editProjectStatus"
+                      value={editingProject.status}
+                      onChange={e => setEditingProject({...editingProject, status: e.target.value})}
+                    >
+                      <option value="Planning">Planning</option>
+                      <option value="Active">Active</option>
+                      <option value="On Hold">On Hold</option>
+                      <option value="Completed">Completed</option>
+                    </select>
+                  </div>
+                </div>
+                <div className="form-group">
+                  <label>Team Members</label>
+                  <div className="team-member-search">
+                    <div className="search-input-container">
+                      <FaSearch className="search-icon" />
+                      <input
+                        type="text"
+                        placeholder="Search team members..."
+                        value={userSearch}
+                        onChange={(e) => setUserSearch(e.target.value)}
+                        className="team-search-input"
+                      />
+                    </div>
+                  </div>
+                  <div className="team-selection">
+                    {loadingUsers ? (
+                      <div className="loading-users">
+                        <div className="loading-spinner"></div>
+                        <span>Loading team members...</span>
+                      </div>
+                    ) : (
+                      users
+                        .filter(user => 
+                          user.name.toLowerCase().includes(userSearch.toLowerCase()) ||
+                          (user.email && user.email.toLowerCase().includes(userSearch.toLowerCase()))
+                        )
+                        .map(user => (
+                          <div 
+                            key={user.id}
+                            className={`team-select-item ${editingProject.members.includes(user.id) ? 'selected' : ''}`}
+                            onClick={() => {
+                              const isSelected = editingProject.members.includes(user.id);
+                              setEditingProject({
+                                ...editingProject, 
+                                members: isSelected 
+                                  ? editingProject.members.filter(id => id !== user.id)
+                                  : [...editingProject.members, user.id]
+                              });
+                            }}
+                            title={user.email}
+                          >
+                            <img src={user.avatar} alt={user.name} />
+                            <div className="user-info">
+                              <span className="user-name">{user.name}</span>
+                              {user.role && <span className="user-role">{user.role}</span>}
+                            </div>
+                            {editingProject.members.includes(user.id) && (
+                              <FaCheckCircle className="selected-icon" />
+                            )}
+                          </div>
+                        ))
+                    )}
+                    {!loadingUsers && users.filter(user => 
+                      user.name.toLowerCase().includes(userSearch.toLowerCase()) ||
+                      (user.email && user.email.toLowerCase().includes(userSearch.toLowerCase()))
+                    ).length === 0 && userSearch && (
+                      <div className="no-users-found">
+                        No team members found matching "{userSearch}"
+                      </div>
+                    )}
+                  </div>
+                  {editingProject.members.length > 0 && (
+                    <div className="selected-members">
+                      <h4>Selected Members ({editingProject.members.length})</h4>
+                      <div className="selected-member-list">
+                        {editingProject.members.map(memberId => {
+                          const member = users.find(u => u.id === memberId);
+                          return member ? (
+                            <div key={memberId} className="selected-member">
+                              <img src={member.avatar} alt={member.name} />
+                              <span>{member.name}</span>
+                              <button
+                                type="button"
+                                className="remove-member"
+                                onClick={() => {
+                                  setEditingProject({
+                                    ...editingProject,
+                                    members: editingProject.members.filter(id => id !== memberId)
+                                  });
+                                }}
+                              >
+                                ×
+                              </button>
+                            </div>
+                          ) : null;
+                        })}
+                      </div>
+                    </div>
+                  )}
+                </div>
+                <div className="form-actions">
+                  <button 
+                    type="button" 
+                    className="cancel-btn"
+                    onClick={() => {
+                      setShowEditProject(false);
+                      setEditingProject(null);
+                    }}
+                  >
+                    Cancel
+                  </button>
+                  <button 
+                    type="button" 
+                    className="submit-btn"
+                    onClick={handleUpdateProject}
+                  >
+                    Update Project
+                  </button>
+                </div>
+              </form>
             </div>
           </div>
         )}
