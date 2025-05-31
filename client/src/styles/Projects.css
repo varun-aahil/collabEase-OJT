@@ -806,7 +806,7 @@
   color: white;
   border: none;
   padding: 0.5rem 1rem;
-  border-radius: 6px;
+  border-radius: 25px;
   cursor: pointer;
   font-size: 0.9rem;
   font-weight: 500;
@@ -856,6 +856,29 @@
   display: flex;
   flex-wrap: wrap;
   gap: 2rem;
+  margin-bottom: 1rem;
+}
+
+.project-actions-container {
+  display: flex;
+  justify-content: flex-start;
+  margin-top: 1rem;
+  padding-top: 1rem;
+  border-top: 1px solid #e9ecef;
+}
+
+.project-actions-container .edit-project-button {
+  background-color: #28a745;
+  color: white;
+  border: none;
+  padding: 0.75rem 1.5rem;
+  border-radius: 4px;
+  font-size: 0.875rem;
+  font-weight: 600;
+}
+
+.project-actions-container .edit-project-button:hover {
+  background-color: #218838;
 }
 
 .due-date-info,
@@ -1333,4 +1356,46 @@
 
 .delete-btn:hover {
   background-color: #c9302c;
+}
+
+/* Project footer and delete button */
+.project-footer {
+  margin-top: 1rem;
+  display: flex;
+  justify-content: flex-end;
+  gap: 0.75rem;
+}
+
+.edit-project-button {
+  background-color: transparent;
+  color: #28a745;
+  border: 1px solid #28a745;
+  padding: 0.5rem 1rem;
+  border-radius: 4px;
+  font-size: 0.75rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.edit-project-button:hover {
+  background-color: #28a745;
+  color: white;
+}
+
+.delete-project-button {
+  background-color: transparent;
+  color: #e74a3b;
+  border: 1px solid #e74a3b;
+  padding: 0.5rem 1rem;
+  border-radius: 4px;
+  font-size: 0.75rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.delete-project-button:hover {
+  background-color: #e74a3b;
+  color: white;
 } 
