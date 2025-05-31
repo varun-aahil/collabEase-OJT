@@ -966,10 +966,6 @@ a.dropdown-link {
 }
 
 /* Project Status Badges */
-.project-status {
-  margin-top: 12px;
-}
-
 .status-badge {
   display: inline-block;
   padding: 4px 10px;
